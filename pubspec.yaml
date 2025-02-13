@@ -1,5 +1,5 @@
-name: sadadem
-description: "A new Flutter project."
+name: Dalem
+description: "Data Demak Dalam Genggaman"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -30,12 +30,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.3.0
-  flutter_dotenv: ^5.2.1
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  http: ^1.3.0
+  flutter_launcher_icons: ^0.14.3
+  rename: ^3.0.2
+  flutter_native_splash: ^2.4.4
+  flutter_widget_from_html: ^0.15.3
 
 
 dev_dependencies:
@@ -48,6 +52,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/img/icon.jpg"
+  min_sdk_android: 16
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sadadem/cate/catdetail.dart';
-import 'package:sadadem/subject/homepage.dart';
+import 'package:Dalem/cate/catdetail.dart';
+import 'package:Dalem/subject/homepage.dart';
 
 class ListDetail extends StatelessWidget {
   final int id;
@@ -12,7 +12,7 @@ class ListDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color.fromRGBO(0, 43, 106, 1),
         leading: IconButton(
           icon: Container(
         decoration: BoxDecoration(
@@ -60,7 +60,7 @@ class ListDetail extends StatelessWidget {
                         return _buildStatisticCategory(
                           icon: Icons.folder_copy_outlined,
                           title: item['title'],
-                          color: Colors.blue, // Changed color to blue
+                          color: Colors.blue.shade900, // Changed color to blue
                           onTap: () {
                             Navigator.push(
                               context,
@@ -69,7 +69,10 @@ class ListDetail extends StatelessWidget {
                                       id: item['sub_id'],
                                       title: item['title'],
                                       desc: item['desc'])),
+                                     
                             );
+                            print("Ini mau print id nya  ");
+                          print(item['sub_id']);
                           },
                         );
                       },

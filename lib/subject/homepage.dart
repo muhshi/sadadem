@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:Dalem/subcat/listsubcat.dart';
 import 'dart:convert';
-import 'package:sadadem/subcat/listsubcat.dart';
 
 Future<List<dynamic>> fetchData(url) async {
   final response = await http.get(Uri.parse(url));
@@ -24,13 +24,14 @@ class Homepage extends StatelessWidget {
         flexibleSpace: Container(
           margin: const EdgeInsets.only(bottom: 20), // Margin bawah
           decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 0, 100, 182),
+            color: const Color.fromRGBO(0, 43, 106, 1),
           ),
           child: Stack(
             children: [
               const Positioned(
-                right: 20,  // Posisi dari tepi kanan
-                top: 80,    // Posisi dari atas
+                right: 20,
+                left: 230,
+                top: 80,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(15)),
@@ -52,14 +53,15 @@ class Homepage extends StatelessWidget {
                   ),
                 ),
               ),
-              const Positioned(
+              Positioned(
                 left: 20,
                 top: 85, // Posisi disesuaikan
+                right: 230, // Tambahkan batas kanan untuk auto enter
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Data Statistik apa\nyang sedang dicari?",
+                      "Data Statistik apa yang sedang dicari?",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -68,7 +70,7 @@ class Homepage extends StatelessWidget {
                     ),
                     SizedBox(height: 10),
                     Text(
-                      "Tenang, Kami bantu carikan\nYa..",
+                      "Tenang, Kami bantu carikan Ya..",
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white,
@@ -81,7 +83,7 @@ class Homepage extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(0, 0, 0, 0), // Warna background transparan
+        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
         elevation: 0, // Hilangkan shadow
       ),
       body: FutureBuilder<List<dynamic>>(
@@ -100,40 +102,44 @@ class Homepage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0), // Add horizontal padding
+                      child: Row(
                       children: [
                         Expanded(
-                          child: _buildStatisticCategory(
-                            title: snapshot.data![0]['title'],
-                            color: Colors.blue,
-                            imageUrl: 'assets/img/demografi.png',
-                            width: 50,
-                            height: 100,
-                            onTap: () => {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => ListDetail(id: snapshot.data![0]['subcat_id'], title: snapshot.data![0]['title'])),
-                              ),
-                            },
+                        child: _buildStatisticCategory(
+                          title: snapshot.data![0]['title'],
+                          color: Colors.blue.shade900,
+                          imageUrl: 'assets/img/demografi.png',
+                          width: 150,
+                          height: 150,
+                          onTap: () => {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ListDetail(id: snapshot.data![0]['subcat_id'], title: snapshot.data![0]['title'])),
                           ),
+                          },
+                        ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildStatisticCategory(
-                            title: snapshot.data![1]['title'],
-                            color: Colors.green,
-                            imageUrl: 'assets/img/ekonomi.png',
-                            width: 50,
-                            height: 100,
-                            onTap: () => {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => ListDetail(id: snapshot.data![1]['subcat_id'], title: snapshot.data![1]['title'])),
-                              ),
-                            },
+                        child: _buildStatisticCategory(
+                          title: snapshot.data![1]['title'],
+                          color: Colors.green.shade700,
+                          imageUrl: 'assets/img/ekonomi.png',
+                          width: 150,
+                          height: 150,
+                          additionalText: 'Additional text here',
+                          onTap: () => {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ListDetail(id: snapshot.data![1]['subcat_id'], title: snapshot.data![1]['title'])),
                           ),
+                          },
+                        ),
                         ),
                       ],
+                      ),
                     ),
                     const SizedBox(height: 10), // Add spacing between rows
                     Center(
@@ -141,15 +147,14 @@ class Homepage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: _buildStatisticCategory(
                           title: snapshot.data![2]['title'],
-                          color: Colors.orange,
+                          color: Colors.orange.shade700,
                           imageUrl: 'assets/img/lingkungan.png',
-                          width: 50,
+                          width: 100,
                           height: 100,
                           onTap: () => {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => ListDetail(id: snapshot.data![2]['subcat_id'], title: snapshot.data![2]['title'])),
-                            ),
+                              MaterialPageRoute(builder: (context) => ListDetail(id: snapshot.data![2]['subcat_id'], title: snapshot.data![2]['title']))),
                           },
                         ),
                       ),
@@ -170,7 +175,8 @@ class Homepage extends StatelessWidget {
     required String imageUrl,
     required double width,
     required double height,
-    VoidCallback? onTap, // Tambahkan parameter onTap
+    String? additionalText,
+    VoidCallback? onTap,
   }) {
     return Card(
       color: color, // Set the color of the card
@@ -180,7 +186,7 @@ class Homepage extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: Column(
           children: [
-            SizedBox(height: 20), // Tambahkan SizedBox di sini
+            SizedBox(height: 15), // Tambahkan SizedBox di sini
             SizedBox(
               width: 150,
               height: 150, // Ubah ukuran sesuai kebutuhan
@@ -197,9 +203,9 @@ class Homepage extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(15.0),
+              padding: const EdgeInsets.all(20.0),
               child: Text(
-                title,
+                _formatTitle(title),
                 textAlign: TextAlign.center, // Posisikan teks di tengah
                 style: const TextStyle(
                   fontSize: 13,
@@ -212,5 +218,16 @@ class Homepage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatTitle(String title) {
+    List<String> words = title.split(' ');
+    if (words.length <= 2) {
+      return '$title\n';
+    }
+    for (int i = 2; i < words.length; i += 4) {
+      words.insert(i, '\n');
+    }
+    return words.join(' ');
   }
 }

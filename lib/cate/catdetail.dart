@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sadadem/subject/homepage.dart';
-import 'package:sadadem/table/table.dart';
+import 'package:Dalem/subject/homepage.dart';
+import 'package:Dalem/table/table.dart' as sadademTable;
 
+import 'dart:convert';
 class Catdetail extends StatelessWidget {
   final String title;
   final int id;
@@ -13,7 +14,7 @@ class Catdetail extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color.fromRGBO(0, 43, 106, 1),
         leading: IconButton(
           icon: Container(
             decoration: BoxDecoration(
@@ -37,7 +38,7 @@ class Catdetail extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: Colors.blue,
+              color: Colors.blue.shade900,
               padding: const EdgeInsets.all(10.0),
               child: Text(
                 desc,
@@ -52,10 +53,33 @@ class Catdetail extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(120.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/img/server.png',
+                            width: 200,
+                            height: 200,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'DATA BELUM TERSEDIA',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('No data available'));
                 } else {
+                  
                   return Padding(
                     padding: const EdgeInsets.all(5.0),
                     child: Column(
@@ -67,18 +91,24 @@ class Catdetail extends StatelessWidget {
                           itemCount: snapshot.data!.length,
                           itemBuilder: (context, index) {
                             var item = snapshot.data![index];
-
                             return _buildStatisticCategory(
                               icon: Icons.bar_chart_outlined,
-                              title: item['title'],
-                              color: Colors.blue,
+                              title: item['title'], 
+                              lastUpdate: 'Terakhir Update: '+(item['last_update']??'-'),
+                              color: Colors.blue.shade900,
                               onTap: () {
+                                var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                                var arrayId = decodedId.split('#');
+                                var id = arrayId[0];
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                      builder: (context) => TablePage(
-                                          id: item['id'],
-                                          title: item['title'])),
+                                    MaterialPageRoute(
+                                    builder: (context) =>
+                                      sadademTable.DataTableScreen(
+                                      id: id,
+                                      title: item['title'],
+                                    ),
+                                  ),
                                 );
                               },
                             );
@@ -99,11 +129,12 @@ class Catdetail extends StatelessWidget {
   Widget _buildStatisticCategory({
     required IconData icon,
     required String title,
+    required String lastUpdate,
     required Color color,
     required VoidCallback onTap,
   }) {
     return Card(
-      color: Colors.blue, // Set the background color of the Card to blue
+      color: Colors.blue.shade900, // Set the background color of the Card to blue
       margin: const EdgeInsets.symmetric(vertical: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
@@ -114,7 +145,8 @@ class Catdetail extends StatelessWidget {
           padding: const EdgeInsets.all(15.0),
           child: Row(
             children: [
-              Icon(icon, color: Colors.white, size: 30), // Set the icon color to white
+              Icon(icon,
+                  color: Colors.white, size: 30), // Set the icon color to white
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
@@ -128,10 +160,18 @@ class Catdetail extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    Text( lastUpdate,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.white), // Set the chevron icon color to white
+              Icon(Icons.chevron_right,
+                  color: Colors.white), // Set the chevron icon color to white
             ],
           ),
         ),

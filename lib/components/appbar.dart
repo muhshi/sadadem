@@ -34,138 +34,124 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return PreferredSize(
-        preferredSize: const Size.fromHeight(230.0),
+        preferredSize: const Size.fromHeight(100.0),
         child: AppBar(
           backgroundColor: Colors.transparent,
           centerTitle: true,
           automaticallyImplyLeading: false,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(.9), // Add color overlay
-              image: DecorationImage(
-                image: AssetImage('assets/img/stta.png'),
-                fit: BoxFit.cover,
+          flexibleSpace: SizedBox(
+            width: double.infinity,
+            height: 275.0, // Set the desired height for the background
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(.5), // Add color overlay
+                image: DecorationImage(
+                  image: AssetImage('assets/img/stta.png'),
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 40, bottom: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 5),
-                    Center(
-                      child: Image.asset(
-                      'assets/img/hometi.png',
-                      height: 100,
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 40, bottom: 10), // jarak atas layar dengan image
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 0),
+                      Center(
+                        child: Image.asset(
+                          'assets/img/homei.png',
+                          height: 80,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    Expanded(
-                      child: FutureBuilder<dynamic>(
-                        future: fetchData(
-                            'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/keyword/strategis/key/b73ea5437eb23fb8309858b840029da2/'),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return CarouselSlider.builder(
-                              options: CarouselOptions(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.2,
-                                autoPlay: true,
-                                autoPlayInterval: const Duration(seconds: 5),
-                                enlargeCenterPage: true,
-                                scrollDirection: Axis.horizontal,
-                              ),
-                              itemCount: 3, // Number of skeleton items
-                              itemBuilder: (context, index, realIndex) {
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 10, horizontal: 10),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  color: Colors
-                                      .white, // Set the card color to white
-                                  child: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width * 0.8,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 5),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          width: double.infinity,
-                                          height: 20,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          width: double.infinity,
-                                          height: 20,
-                                          color: Colors.grey.shade400,
-                                        ),
-                                      ],
+                      const SizedBox(height: 5),
+                      Expanded(
+                        child: FutureBuilder<dynamic>(
+                          future: fetchData(
+                              'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/keyword/strategis/key/b73ea5437eb23fb8309858b840029da2/'),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return CarouselSlider.builder(
+                                options: CarouselOptions(
+                                  height: MediaQuery.of(context).size.height * 0.2,
+                                  autoPlay: true,
+                                  autoPlayInterval: const Duration(seconds: 5),
+                                  enlargeCenterPage: true,
+                                  scrollDirection: Axis.horizontal,
+                                ),
+                                itemCount: 3, // Number of skeleton items
+                                itemBuilder: (context, index, realIndex) {
+                                  return Card(
+                                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                  ),
-                                );
-                              },
-                            );
-                          } else if (snapshot.hasError) {
-                            return Center(
-                                child: Text('Error: ${snapshot.error}'));
-                          } else if (!snapshot.hasData ||
-                              snapshot.data!.isEmpty) {
-                            return const Center(
-                                child: Text('No data available'));
-                          } else {
-                            return CarouselSlider(
-                              options: CarouselOptions(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.2,
-                                autoPlay: true,
-                                autoPlayInterval: const Duration(seconds: 5),
-                                enlargeCenterPage: true,
-                                scrollDirection: Axis.horizontal,
-                              ),
-                              items: snapshot.data!['data'][1]!
-                                  .map<Widget>((item) {
-                                var decodedId = utf8.decode(
-                                    base64.decode(item['id'].toString()));
-                                var arrayId = decodedId.split('#');
-                                var id = arrayId[0];
-
-                                var titleParts =
-                                    item['title'].split('Strategis] ');
-                                var title = titleParts.length > 1
-                                    ? titleParts[1]
-                                    : item['title'];
-                                return _buildStatisticCategory(
-                                  title: title,
-                                  color: Colors
-                                      .white, // Set the card color to white
-                                  id: id,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DataTableScreen(
-                                        id: id,
-                                        title: title,
+                                    color: Colors.white, // Set the card color to white
+                                    child: Container(
+                                      width: MediaQuery.of(context).size.width * 0.8,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            height: 20,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            width: double.infinity,
+                                            height: 20,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          }
-                        },
+                                  );
+                                },
+                              );
+                            } else if (snapshot.hasError) {
+                              return Center(child: Text('Error: ${snapshot.error}'));
+                            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return const Center(child: Text('No data available'));
+                            } else {
+                              return CarouselSlider(
+                                options: CarouselOptions(
+                                  height: MediaQuery.of(context).size.height * 0.2,
+                                  autoPlay: true,
+                                  autoPlayInterval: const Duration(seconds: 5),
+                                  enlargeCenterPage: true,
+                                  scrollDirection: Axis.horizontal,
+                                ),
+                                items: snapshot.data!['data'][1]!.map<Widget>((item) {
+                                  var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                                  var arrayId = decodedId.split('#');
+                                  var id = arrayId[0];
+
+                                  var titleParts = item['title'].split('Strategis] ');
+                                  var title = titleParts.length > 1 ? titleParts[1] : item['title'];
+                                  return _buildStatisticCategory(
+                                    title: title,
+                                    color: Colors.white, // Set the card color to white
+                                    id: id,
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DataTableScreen(
+                                          id: id,
+                                          title: title,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            }
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -174,7 +160,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(200.0);
+  Size get preferredSize => const Size.fromHeight(100.0);
 
   Widget _buildStatisticCategory({
     required String title,
@@ -183,8 +169,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      margin: const EdgeInsets.symmetric(
-          vertical: 10, horizontal: 10), // Add horizontal margin for spacing
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10), // Add horizontal margin for spacing
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
@@ -194,8 +179,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
           child: Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center, // Center all text vertically
+            mainAxisAlignment: MainAxisAlignment.center, // Center all text vertically
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
@@ -218,8 +202,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.white));
+                    return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white));
                   } else {
                     final data = snapshot.data ?? 'No description available';
                     return Center(
@@ -257,7 +240,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       var unit = varData[varData.length - 1]["unit"] ?? '';
       var key =
           '${vervarData[vervarData.length - 1]["val"]}${varData[varData.length - 1]["val"]}${turvarData[turvarData.length - 1]["val"]}${tahun[tahun.length - 1]["val"]}${turTahun[turTahun.length - 1]["val"]}';
-      var resValue = "${dataContent[key]} $unit";
+      var resValue = "${dataContent[key]} $unit".replaceAll('.', ',');
+      if (!resValue.contains(',')) {
+        resValue = resValue.replaceAllMapped(
+            RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+      }
+
       var resTahun = tahun[tahun.length - 1]["label"];
       return '$resValue ($resTahun)';
     } catch (e) {

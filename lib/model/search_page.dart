@@ -1,5 +1,5 @@
 import 'package:Dalem/berita/detail_berita.dart';
-import 'package:Dalem/publikasi/downloaded_publications.dart';
+import 'package:Dalem/model/download.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
 import 'package:Dalem/publikasi/detail_publikasi.dart';
 import 'package:Dalem/subject/homepage.dart';

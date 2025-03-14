@@ -9,7 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 import 'package:Dalem/components/bar.dart';
-import 'downloaded_publications.dart';
+import '../model/download.dart';
 
 class DetailPublikasi extends StatefulWidget {
   final Map<String, dynamic> publication;
@@ -260,7 +260,7 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: SingleChildScrollView(
+                  child: SingleChildScrollView(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,33 +317,39 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(5.0),
                     color: Colors.white,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         if (!_isDownloaded)
-                          ElevatedButton.icon(
+                            ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade600, // Change background color
+                            ),
                             onPressed: () {
                               Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PDFViewerFromUrl(
-                                    url: widget.publication['pdf'],
-                                    title: widget.publication['title'],
-                                  ),
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PDFViewerFromUrl(
+                                url: widget.publication['pdf'],
+                                title: widget.publication['title'],
                                 ),
+                              ),
                               );
                             },
-                            icon: const Icon(Icons.remove_red_eye),
-                            label: const Text('Lihat'),
-                          ),
-                        if (_isDownloaded)
-                          ElevatedButton.icon(
+                            icon: const Icon(Icons.remove_red_eye, color: Colors.white),
+                            label: const Text('Lhat', style: TextStyle(color: Colors.white)), // Change label
+                            ),
+                            if (_isDownloaded)
+                            ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade600, // Change background color
+                            ),
                             onPressed: _showDownloadLocation,
-                            icon: const Icon(Icons.info),
-                            label: const Text('Info'),
-                          ),
+                            icon: const Icon(Icons.info, color: Colors.white),
+                            label: const Text('Info', style: TextStyle(color: Colors.white)),
+                            ),
                         SizedBox(
                           width: 200,
                           child: ElevatedButton.icon(
@@ -367,22 +373,25 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
                                         context,
                                         widget.publication['pdf'],
                                         widget.publication['cover']),
-                            icon: _isDownloading
-                                ? CircularProgressIndicator(
-                                    value: _downloadProgress,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.blue),
-                                  )
-                                : _isDownloaded
-                                    ? const Icon(Icons.open_in_new)
-                                    : const Icon(Icons.download),
-                            label: _isDownloading
-                                ? Text(
-                                    '${(_downloadProgress * 100).toStringAsFixed(0)}%')
-                                : _isDownloaded
-                                    ? const Text('Buka')
-                                    : Text(
-                                        'Unduh (${widget.publication['size'] ?? 'unknown'})'),
+                                    icon: _isDownloading
+                                    ? CircularProgressIndicator(
+                                      value: _downloadProgress,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                      )
+                                    : _isDownloaded
+                                      ? const Icon(Icons.open_in_new, color: Colors.white)
+                                      : const Icon(Icons.download, color: Colors.white),
+                                    label: _isDownloading
+                                    ? Text(
+                                      '${(_downloadProgress * 100).toStringAsFixed(0)}%', style: TextStyle(color: Colors.blue.shade600))
+                                    : _isDownloaded
+                                      ? const Text('Buka', style: TextStyle(color: Colors.white))
+                                      : Text(
+                                      'Unduh (${widget.publication['size'] ?? 'unknown'})', style: TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade600,
+                                    ),
                           ),
                         ),
                       ],

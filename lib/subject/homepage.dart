@@ -1,7 +1,9 @@
 import 'package:Dalem/berita/berita.dart';
 import 'package:Dalem/components/home_ber.dart';
 import 'package:Dalem/components/home_info.dart';
-import 'package:Dalem/publikasi/downloaded_publications.dart';
+import 'package:Dalem/model/download.dart';
+import 'package:Dalem/subcat/ekonomi.dart';
+import 'package:Dalem/subcat/lingkungan.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -10,7 +12,7 @@ import 'package:Dalem/components/home_pub.dart';
 import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
 import 'package:Dalem/strategis/strategis.dart';
-import 'package:Dalem/subcat/listDetail.dart';
+import 'package:Dalem/subcat/demografi.dart';
 import 'package:Dalem/infographic/infographic.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -143,11 +145,11 @@ class _HomepageState extends State<Homepage> {
                           boxColor = Colors.blue.shade600;
                           icon = Icons.people;
                         } else if (index % 3 == 1) {
-                          boxColor = Colors.green.shade600;
-                          icon = Icons.attach_money;
-                        } else {
                           boxColor = Colors.orange.shade600;
                           icon = Icons.eco;
+                        } else {
+                          boxColor = Colors.green.shade600;
+                          icon = Icons.attach_money;
                         }
 
                         return Padding(
@@ -156,20 +158,44 @@ class _HomepageState extends State<Homepage> {
                             title: item['title'],
                             color: boxColor,
                             icon: icon,
-                            onTap: () => {
+                          onTap: () {
+                            if (item['subcat_id'] == 514) {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ListDetail(
+                                  builder: (context) => ListDetail514(
+                                    id: item['subcat_id'],
+                                    title: item['title'],
+                                    color: boxColor,
+                                  ),
+                                )
+                              );
+                            } else if (item['subcat_id'] == 515) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ListDetail515(
                                     id: item['subcat_id'],
                                     title: item['title'],
                                     color: boxColor,
                                   ),
                                 ),
-                              ),
-                            },
-                          ),
-                        );
+                              );
+                            } else if (item['subcat_id'] == 516) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ListDetail516(
+                                    id: item['subcat_id'],
+                                    title: item['title'],
+                                    color: boxColor,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      );
                       }),
                       const SizedBox(height: 20),
                       HomePublication(
@@ -233,24 +259,25 @@ class _HomepageState extends State<Homepage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        elevation: 8,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
+        icon: Icon(Icons.home),
+        label: 'Beranda',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Cari',
+        icon: Icon(Icons.search),
+        label: 'Cari',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.file_open),
-            label: 'Publikasi',
+        icon: Icon(Icons.file_open),
+        label: 'Publikasi',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.download),
-            label: 'Unduhan',
+        icon: Icon(Icons.download),
+        label: 'Unduhan',
           ),
         ],
         currentIndex: 0,
@@ -258,32 +285,32 @@ class _HomepageState extends State<Homepage> {
         unselectedItemColor: Colors.grey.shade700,
         onTap: (index) {
           switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Homepage()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => SearchPage(autofocus: false)),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Publikasi()),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => DownloadedPublicationsPage()),
-              );
-              break;
+        case 0:
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => Homepage()),
+          );
+          break;
+        case 1:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+            builder: (context) => SearchPage(autofocus: false)),
+          );
+          break;
+        case 2:
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => Publikasi()),
+          );
+          break;
+        case 3:
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+            builder: (context) => DownloadedPublicationsPage()),
+          );
+          break;
           }
         },
       ),

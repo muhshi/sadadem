@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:Dalem/components/bar.dart';
-// import 'package:Dalem/subcat/listDetail.dart';
 import 'package:Dalem/table/table.dart' as Dalem_table;
 import 'package:Dalem/components/offline_storage.dart';
 import 'package:http/http.dart' as http;
@@ -12,11 +11,7 @@ class Catdetail extends StatelessWidget {
   final String desc;
   final Color color;
   const Catdetail(
-      {super.key,
-      this.id = 0,
-      required this.title,
-      required this.desc,
-      required this.color});
+      {super.key, this.id = 0, required this.title, required this.desc, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -24,131 +19,127 @@ class Catdetail extends StatelessWidget {
       appBar: AppBar2(
         title: title,
       ),
-      backgroundColor: Colors.white, 
-      body: Container(
-        color: Colors.white, 
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                color: color,
-                padding: const EdgeInsets.all(10.0),
-                child: Column(
-                  children: [
-                    Text(
-                      desc,
-                      style: const TextStyle(fontSize: 14, color: Colors.white),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              color: color,
+              padding: const EdgeInsets.all(5.0),
+            //   child: Column(
+            //     children: [
+            //       Text(
+            //         desc,
+            //         style: const TextStyle(fontSize: 14, color: Colors.white),
+            //         textAlign: TextAlign.center,
+            //         maxLines: 2,
+            //         overflow: TextOverflow.ellipsis,
+            //       ),
+            //       if (desc.length > 100) // Adjust the length as needed
+            //         TextButton(
+            //           onPressed: () {
+            //             showDialog(
+            //               context: context,
+            //               builder: (context) => AlertDialog(
+            //                 content: Text(desc),
+            //                 actions: [
+            //                   TextButton(
+            //                     onPressed: () => Navigator.pop(context),
+            //                     child: const Text('Tutup'),
+            //                   ),
+            //                 ],
+            //               ),
+            //             );
+            //           },
+            //           child: const Text(
+            //             'Baca selengkapnya',
+            //             style: TextStyle(
+            //               color: Colors.white,
+            //             ),
+            //           ),
+            //         ),
+            //     ],
+            //   ),
+            ),
+            FutureBuilder<List<dynamic>>(
+              future: fetchData(
+                  'https://webapi.bps.go.id/v1/api/list/domain/3321/model/tablestatistic/subject/$id/page/1/perpage/200/key/b73ea5437eb23fb8309858b840029da2/'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(50.0),
+                      child: CircularProgressIndicator(),
                     ),
-                    if (desc.length > 100) // Adjust the length as needed
-                      TextButton(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              content: Text(desc),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Tutup'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Baca selengkapnya',
-                          style: TextStyle(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              FutureBuilder<List<dynamic>>(
-                future: fetchData(
-                    'https://webapi.bps.go.id/v1/api/list/domain/3321/model/tablestatistic/subject/$id/page/1/perpage/200/key/b73ea5437eb23fb8309858b840029da2/'),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(50.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  } else if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(120.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/img/server.png',
-                              width: 500,
-                              height: 200,
-                            ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'DATA BELUM TERSEDIA',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No data available'));
-                  } else {
-                    return Padding(
-                      padding: const EdgeInsets.all(10.0),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(120.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: snapshot.data!.length,
-                            itemBuilder: (context, index) {
-                              var item = snapshot.data![index];
-                              return _buildStatisticCategory(
-                                icon: Icons.bar_chart_outlined,
-                                title: item['title'],
-                                lastUpdate: item['last_update'] ?? '',
-                                color: color,
-                                onTap: () {
-                                  var decodedId = utf8.decode(
-                                      base64.decode(item['id'].toString()));
-                                  var arrayId = decodedId.split('#');
-                                  var id = arrayId[0];
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          Dalem_table.DataTableScreen(
-                                        id: id,
-                                        title: item['title'],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
+                          Image.asset(
+                            'assets/img/server.png',
+                            width: 500,
+                            height: 200,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'DATA BELUM TERSEDIA',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }
-                },
-              )
-            ],
-          ),
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No data available'));
+                } else {
+                  return Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            var item = snapshot.data![index];
+                            return _buildStatisticCategory(
+                              icon: Icons.bar_chart_outlined,
+                              title: item['title'],
+                              lastUpdate: item['last_update'] ?? '',
+                              color: color,
+                              onTap: () {
+                                var decodedId = utf8.decode(
+                                    base64.decode(item['id'].toString()));
+                                var arrayId = decodedId.split('#');
+                                var id = arrayId[0];
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        Dalem_table.DataTableScreen(
+                                      id: id,
+                                      title: item['title'],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            )
+          ],
         ),
       ),
     );

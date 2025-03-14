@@ -192,7 +192,12 @@ class _StrategisState extends State<Strategis> {
       var unit = varData[varData.length - 1]["unit"] ?? '';
       var key =
           '${vervarData[vervarData.length - 1]["val"]}${varData[varData.length - 1]["val"]}${turvarData[turvarData.length - 1]["val"]}${tahun[tahun.length - 1]["val"]}${turTahun[turTahun.length - 1]["val"]}';
-      var resValue = "${dataContent[key]} $unit";
+      var resValue = "${dataContent[key]} $unit".replaceAll('.', ',');
+      if (!resValue.contains(',')) {
+        resValue = resValue.replaceAllMapped(
+            RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+      }
+
       var resTahun = tahun[tahun.length - 1]["label"];
       return '$resValue ($resTahun)';
     } catch (e) {

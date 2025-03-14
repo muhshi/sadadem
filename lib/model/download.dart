@@ -53,30 +53,31 @@ class DownloadedPublicationsPageState
     }
   }
 
-  Future<List<Map<String, String>>> _loadDownloadedFiles() async {
-    final directory = Directory('/storage/emulated/0/Download/Dalem');
-    if (!await directory.exists()) {
-      return [];
-    }
-    final dataDir = await getApplicationDocumentsDirectory();
-    final files = directory
-        .listSync()
-        .where((item) =>
-            item.path.endsWith('.pdf') ||
-            item.path.endsWith('.jpg') ||
-            item.path.endsWith('.png'))
-        .map((item) {
-      final coverPath = item.path.endsWith('.pdf')
-          ? '${dataDir.path}/${item.path.split('/').last.replaceFirst('.pdf', '_cover.jpg')}'
-          : item.path;
-      return {
-        'file': item.path,
-        'cover': coverPath,
-      };
-    }).toList();
-    _sortFiles(files);
-    return files;
+Future<List<Map<String, String>>> _loadDownloadedFiles() async {
+  final directory = Directory('/storage/emulated/0/Download/Dalem');
+  if (!await directory.exists()) {
+    return [];
   }
+  final dataDir = await getApplicationDocumentsDirectory();
+  final files = directory
+      .listSync()
+      .where((item) =>
+          item.path.endsWith('.pdf') ||
+          item.path.endsWith('.jpg') ||
+          item.path.endsWith('.png'))
+      .map((item) {
+    final coverPath = item.path.endsWith('.pdf')
+        ? '${dataDir.path}/${item.path.split('/').last.replaceFirst('.pdf', '_cover.jpg')}'
+        : item.path;
+    return {
+      'file': item.path,
+      'cover': coverPath,
+    };
+  }).toList();
+  _sortFiles(files);
+  return files;
+}
+
 
   void _sortFiles(List<Map<String, String>> files) {
     if (_sortCriteria == 'name') {

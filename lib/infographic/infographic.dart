@@ -122,7 +122,7 @@ class InfographicState extends State<Infographic> {
                 controller: _scrollController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.57,
+                  childAspectRatio: 0.56,
                 ),
                 itemCount: infographicList.length + (hasMoreData ? 1 : 0),
                 itemBuilder: (context, index) {
@@ -177,7 +177,7 @@ class InfographicState extends State<Infographic> {
                         SizedBox(height: 4.0),
                         if (isDownloaded)
                           ElevatedButton.icon(
-                            icon: Icon(Icons.open_in_new, color: Colors.white),
+                            // icon: Icon(Icons.open_in_new, color: Colors.white),
                             label: Text('Buka',
                                 style: TextStyle(color: Colors.white)),
                             style: ElevatedButton.styleFrom(
@@ -193,7 +193,7 @@ class InfographicState extends State<Infographic> {
                           )
                         else
                           ElevatedButton.icon(
-                            icon: Icon(Icons.download, color: Colors.white),
+                            // icon: Icon(Icons.download, color: Colors.white),
                             label: Text('Unduh',
                                 style: TextStyle(color: Colors.white)),
                             style: ElevatedButton.styleFrom(

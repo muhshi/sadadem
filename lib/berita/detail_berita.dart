@@ -1,10 +1,7 @@
 import 'dart:io';
 
 import 'package:Dalem/components/bar.dart';
-import 'package:Dalem/model/search_page.dart';
-import 'package:Dalem/publikasi/downloaded_publications.dart';
-import 'package:Dalem/publikasi/publikasi.dart';
-import 'package:Dalem/subject/homepage.dart';
+import 'package:Dalem/components/bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:html_unescape/html_unescape.dart';
@@ -191,59 +188,10 @@ class _DetailBeritaState extends State<DetailBerita> {
           }
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Cari',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_open),
-            label: 'Publikasi',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.download),
-            label: 'Unduhan',
-          ),
-        ],
-        currentIndex: 2, // Set the initial selected index to Berita
-        selectedItemColor: Colors.grey.shade700,
-        unselectedItemColor: Colors.grey.shade700,
+      bottomNavigationBar: BottomNav(
+        currentIndex: 0,
         onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Homepage()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => SearchPage(autofocus: false)),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Publikasi()),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => DownloadedPublicationsPage()),
-              );
-              break;
-          }
+          // Handle bottom navigation tap if needed
         },
       ),
     );

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:Dalem/model/search_page.dart';
-import 'package:Dalem/publikasi/downloaded_publications.dart';
+import 'package:Dalem/model/download.dart';
 import 'package:Dalem/subject/homepage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -93,11 +93,14 @@ class PublikasiState extends State<Publikasi> {
           return Column(
             children: [
               ListTile(
-            leading: Image.network(
-              item['cover'],
-              width: 50,
-              height: 50,
-              fit: BoxFit.fitHeight,
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: Image.network(
+                item['cover'],
+                width: 50,
+                height: 50,
+                fit: BoxFit.fitHeight,
+              ),
             ),
             title: Text(
               item['title'],

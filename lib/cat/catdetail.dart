@@ -11,7 +11,11 @@ class Catdetail extends StatelessWidget {
   final String desc;
   final Color color;
   const Catdetail(
-      {super.key, this.id = 0, required this.title, required this.desc, required this.color});
+      {super.key,
+      this.id = 0,
+      required this.title,
+      required this.desc,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -25,40 +29,40 @@ class Catdetail extends StatelessWidget {
             Container(
               color: color,
               padding: const EdgeInsets.all(5.0),
-            //   child: Column(
-            //     children: [
-            //       Text(
-            //         desc,
-            //         style: const TextStyle(fontSize: 14, color: Colors.white),
-            //         textAlign: TextAlign.center,
-            //         maxLines: 2,
-            //         overflow: TextOverflow.ellipsis,
-            //       ),
-            //       if (desc.length > 100) // Adjust the length as needed
-            //         TextButton(
-            //           onPressed: () {
-            //             showDialog(
-            //               context: context,
-            //               builder: (context) => AlertDialog(
-            //                 content: Text(desc),
-            //                 actions: [
-            //                   TextButton(
-            //                     onPressed: () => Navigator.pop(context),
-            //                     child: const Text('Tutup'),
-            //                   ),
-            //                 ],
-            //               ),
-            //             );
-            //           },
-            //           child: const Text(
-            //             'Baca selengkapnya',
-            //             style: TextStyle(
-            //               color: Colors.white,
-            //             ),
-            //           ),
-            //         ),
-            //     ],
-            //   ),
+              //   child: Column(
+              //     children: [
+              //       Text(
+              //         desc,
+              //         style: const TextStyle(fontSize: 14, color: Colors.white),
+              //         textAlign: TextAlign.center,
+              //         maxLines: 2,
+              //         overflow: TextOverflow.ellipsis,
+              //       ),
+              //       if (desc.length > 100) // Adjust the length as needed
+              //         TextButton(
+              //           onPressed: () {
+              //             showDialog(
+              //               context: context,
+              //               builder: (context) => AlertDialog(
+              //                 content: Text(desc),
+              //                 actions: [
+              //                   TextButton(
+              //                     onPressed: () => Navigator.pop(context),
+              //                     child: const Text('Tutup'),
+              //                   ),
+              //                 ],
+              //               ),
+              //             );
+              //           },
+              //           child: const Text(
+              //             'Baca selengkapnya',
+              //             style: TextStyle(
+              //               color: Colors.white,
+              //             ),
+              //           ),
+              //         ),
+              //     ],
+              //   ),
             ),
             FutureBuilder<List<dynamic>>(
               future: fetchData(
@@ -119,6 +123,10 @@ class Catdetail extends StatelessWidget {
                                     base64.decode(item['id'].toString()));
                                 var arrayId = decodedId.split('#');
                                 var id = arrayId[0];
+                                var tableType = arrayId.length > 1
+                                    ? arrayId[1]
+                                    : '1'; // default '1' (statictable) jika tidak ada
+
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -126,6 +134,8 @@ class Catdetail extends StatelessWidget {
                                         Dalem_table.DataTableScreen(
                                       id: id,
                                       title: item['title'],
+                                      tableType:
+                                          tableType, // tambahkan parameter ini
                                     ),
                                   ),
                                 );

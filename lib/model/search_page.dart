@@ -68,9 +68,9 @@ class _SearchPageState extends State<SearchPage> {
         'type': 'news'
       },
       {
-      'url':
-          'https://webapi.bps.go.id/v1/api/list/model/infographic/lang/ind/domain/3321/keyword/$query/key/b73ea5437eb23fb8309858b840029da2/',
-      'type': 'infographic'
+        'url':
+            'https://webapi.bps.go.id/v1/api/list/model/infographic/lang/ind/domain/3321/keyword/$query/key/b73ea5437eb23fb8309858b840029da2/',
+        'type': 'infographic'
       },
     ];
 
@@ -206,30 +206,32 @@ class _SearchPageState extends State<SearchPage> {
                                                         title: item['title']),
                                               ),
                                             );
-                                            } else if (item['type'] ==
-                                                'publication') {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      DetailPublikasi(
-                                                          publication: item),
-                                                ),
-                                              );
-                                            } else if (item['type'] == 'news') {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      DetailBerita(newsId: item['news_id'].toString()),
-                                                ),
-                                              );
-                                            } else if (item['type'] == 'infographic'){
-                                              _showFullScreenImage(context, item['img']);
-                                            }
-                                        
+                                          } else if (item['type'] ==
+                                              'publication') {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    DetailPublikasi(
+                                                        publication: item),
+                                              ),
+                                            );
+                                          } else if (item['type'] == 'news') {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    DetailBerita(
+                                                        newsId: item['news_id']
+                                                            .toString()),
+                                              ),
+                                            );
+                                          } else if (item['type'] ==
+                                              'infographic') {
+                                            _showFullScreenImage(
+                                                context, item['img']);
                                           }
-                                        catch (e) {
+                                        } catch (e) {
                                           debugPrint('Error decoding ID: $e');
                                         }
                                       },
@@ -330,8 +332,8 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
-  void _showFullScreenImage(
-      BuildContext context, String imagePath) {
+
+  void _showFullScreenImage(BuildContext context, String imagePath) {
     showDialog(
       context: context,
       builder: (context) {
@@ -345,10 +347,10 @@ class _SearchPageState extends State<SearchPage> {
                   panEnabled: true,
                   minScale: 0.5,
                   maxScale: 4.0,
-                  child:Image.network(
-                          imagePath,
-                          fit: BoxFit.contain,
-                        ),
+                  child: Image.network(
+                    imagePath,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               Positioned(

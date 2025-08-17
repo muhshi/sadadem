@@ -1,6 +1,7 @@
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
 import 'package:flutter/material.dart';
+import 'package:html_unescape/html_unescape.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -12,8 +13,10 @@ import 'package:csv/csv.dart';
 class DataTableScreen extends StatefulWidget {
   final String id;
   final String title;
+  final String tableType;
 
-  const DataTableScreen({super.key, required this.id, required this.title});
+  const DataTableScreen(
+      {super.key, required this.id, required this.title, this.tableType = '1'});
 
   @override
   DataTableScreenState createState() => DataTableScreenState();
@@ -29,25 +32,41 @@ class DataTableScreenState extends State<DataTableScreen> {
   }
 
   Future<Map<String, dynamic>> fetchDataTable() async {
-    final url =
-        "https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=${widget.id}&key=b73ea5437eb23fb8309858b840029da2";
+    String url;
+    // Ambil hanya bagian sebelum '#' untuk API
+    final idParts = widget.id.split('#');
+    final idOnly = idParts[0];
+
+    if (widget.tableType == '1') {
+      // Statictable
+      url =
+          "https://webapi.bps.go.id/v1/api/view/domain/3321/model/statictable/id/$idOnly/lang/ind/key/b73ea5437eb23fb8309858b840029da2/";
+    } else if (widget.tableType == '2') {
+      // Dynamic
+      final tahunSekarang = DateTime.now().year % 1000; // 2025 % 1000 = 25
+      final thParam = tahunSekarang.toString().padLeft(3, '0'); // '025'
+      url =
+          "https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$idOnly&key=b73ea5437eb23fb8309858b840029da2&th=$thParam";
+    } else {
+      throw Exception('Tipe tabel tidak dikenali');
+    }
+
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        debugPrint(jsonResponse.toString());
-        // Save data offline
-        await OfflineStorage.saveData(url, jsonResponse);
-        return jsonResponse;
+        final Map<String, dynamic> castedResponse =
+            (jsonResponse as Map).cast<String, dynamic>();
+        await OfflineStorage.saveData(url, castedResponse);
+        return castedResponse;
       } else {
         throw Exception(
             'Gagal mengambil data dari API, status: ${response.statusCode}');
       }
     } catch (e) {
-      // Load data from offline storage if API call fails
       final offlineData = await OfflineStorage.loadData(url);
       if (offlineData != null) {
-        return offlineData;
+        return offlineData.cast<String, dynamic>();
       } else {
         throw Exception('Terjadi kesalahan saat mengambil data');
       }
@@ -55,6 +74,9 @@ class DataTableScreenState extends State<DataTableScreen> {
   }
 
   String generateHtmlTable(data) {
+    if (widget.tableType == '1') {
+      return HtmlUnescape().convert(data['data']['table']);
+    }
     var html = '''
     <table border="1" style="width: 100%; border-collapse: collapse;">
       <thead>
@@ -70,22 +92,27 @@ class DataTableScreenState extends State<DataTableScreen> {
     final turTahun = data["turtahun"] ?? [];
 
     varData.forEach((varData) {
-      html += '<th colspan="${tahun.length * turvarData.length}" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${varData['label']}</th>';
+      html +=
+          '<th colspan="${tahun.length * turvarData.length}" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${varData['label']}</th>';
     });
-    html += '</tr><tr style="background-color: rgb(0, 43, 106); color: white;">';
+    html +=
+        '</tr><tr style="background-color: rgb(0, 43, 106); color: white;">';
 
     varData.forEach((varData) {
       turvarData.forEach((element) {
-        html += '<th colspan="${tahun.length}" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']}</th>';
+        html +=
+            '<th colspan="${tahun.length}" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']}</th>';
       });
     });
 
-    html += '</tr><tr style="background-color: rgb(0, 43, 106); color: white;">';
+    html +=
+        '</tr><tr style="background-color: rgb(0, 43, 106); color: white;">';
 
     varData.forEach((varData) {
       turvarData.forEach((_) {
         tahun.forEach((element) {
-          html += '<th style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${element['label']}</th>';
+          html +=
+              '<th style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${element['label']}</th>';
         });
       });
     });
@@ -94,17 +121,21 @@ class DataTableScreenState extends State<DataTableScreen> {
 
     vervarData.forEach((vervar) {
       html += '<tr>';
-      html += '<td style="border: 1px solid #ddd; padding: 8px 12px; text-align: center;">${vervar['label']}</td>';
+      html +=
+          '<td style="border: 1px solid #ddd; padding: 8px 12px; text-align: center;">${vervar['label']}</td>';
       varData.forEach((varData) {
         turvarData.forEach((turvar) {
           tahun.forEach((tahun) {
-            final key = "${vervar["val"]}${varData["val"]}${turvar["val"]}${tahun['val']}${turTahun[0]['val']}";
+            final key =
+                "${vervar["val"]}${varData["val"]}${turvar["val"]}${tahun['val']}${turTahun[0]['val']}";
             String value = dataContent[key]?.toString() ?? '-';
             if (value != '-') {
               value = value.replaceAll('.', ',');
-              value = value.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+              value = value.replaceAllMapped(
+                  RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
             }
-            html += '<td style="border: 1px solid #ddd; padding: 8px 12px; text-align: center;">$value</td>';
+            html +=
+                '<td style="border: 1px solid #ddd; padding: 8px 12px; text-align: center;">$value</td>';
           });
         });
       });
@@ -129,14 +160,16 @@ class DataTableScreenState extends State<DataTableScreen> {
     // Header
     List<String> header1 = [''];
     varData.forEach((varData) {
-      header1.addAll(List.filled(tahun.length * turvarData.length, varData['label']));
+      header1.addAll(
+          List.filled(tahun.length * turvarData.length, varData['label']));
     });
     csvData.add(header1);
 
     List<String> header2 = [data['labelvervar']];
     varData.forEach((varData) {
       turvarData.forEach((element) {
-      header2.addAll(List.filled(tahun.length, element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']));
+        header2.addAll(List.filled(tahun.length,
+            element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']));
       });
     });
     csvData.add(header2);
@@ -144,9 +177,9 @@ class DataTableScreenState extends State<DataTableScreen> {
     List<String> header3 = [''];
     varData.forEach((varData) {
       turvarData.forEach((_) {
-      tahun.forEach((tahun) {
-        header3.add(tahun['label']);
-      });
+        tahun.forEach((tahun) {
+          header3.add(tahun['label']);
+        });
       });
     });
     csvData.add(header3);
@@ -157,7 +190,8 @@ class DataTableScreenState extends State<DataTableScreen> {
       varData.forEach((varData) {
         turvarData.forEach((turvar) {
           tahun.forEach((tahun) {
-            final key = "${vervar["val"]}${varData["val"]}${turvar["val"]}${tahun['val']}${turTahun[0]['val']}";
+            final key =
+                "${vervar["val"]}${varData["val"]}${turvar["val"]}${tahun['val']}${turTahun[0]['val']}";
             row.add(dataContent[key]?.toString() ?? '-');
           });
         });
@@ -205,89 +239,90 @@ class DataTableScreenState extends State<DataTableScreen> {
         child: FutureBuilder<Map<String, dynamic>>(
           future: futureDataTable,
           builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError || snapshot.data is! Map<String, dynamic>) {
-          return Center(
-            child: Padding(
-          padding: const EdgeInsets.all(120.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-            'assets/img/server.png',
-            width: 200,
-            height: 200,
-              ),
-              const SizedBox(height: 10),
-              const Text(
-            'DATA BELUM TERSEDIA',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-              ),
-            ],
-          ),
-            ),
-          );
-        } else {
-          final data = snapshot.data!;
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError ||
+                snapshot.data is! Map<String, dynamic>) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(120.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/img/server.png',
+                        width: 200,
+                        height: 200,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'DATA BELUM TERSEDIA',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            } else {
+              final data = snapshot.data!;
 
-          return SingleChildScrollView(
-            child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-            widget.title,
-            style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              HtmlWidget(generateHtmlTable(data)),
-              const SizedBox(height: 20),
-              Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade800,
-              ),
-              onPressed: () async {
-                final csv = generateCsv(data);
-                await downloadCsv(csv);
-              },
-              child: Text(
-                'Download',
-                style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      HtmlWidget(generateHtmlTable(data)),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade800,
+                          ),
+                          onPressed: () async {
+                            final csv = generateCsv(data);
+                            await downloadCsv(csv);
+                          },
+                          child: Text(
+                            'Download',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            launchUrl(Uri.parse(
+                                'https://ppid.bps.go.id/app/konten/3321/Profil-BPS.html?_gl=1*9iomf9*_ga*ODk0Njg5NDUyLjE3MzMzNjI0NDI.*_ga_XXTTVXWHDB*MTc0MDM2MTk3My40My4xLjE3NDAzNjIyODcuMC4wLjA.'));
+                          },
+                          child: const Text(
+                            'Hak Cipta © 2025 Badan Pusat Statistik',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-            child: TextButton(
-              onPressed: () {
-                launchUrl(Uri.parse(
-                'https://ppid.bps.go.id/app/konten/3321/Profil-BPS.html?_gl=1*9iomf9*_ga*ODk0Njg5NDUyLjE3MzMzNjI0NDI.*_ga_XXTTVXWHDB*MTc0MDM2MTk3My40My4xLjE3NDAzNjIyODcuMC4wLjA.'));
-              },
-              child: const Text(
-                'Hak Cipta © 2025 Badan Pusat Statistik',
-                style: TextStyle(
-              color: Colors.black54,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-              ),
-            ],
-          ),
-            ),
-          );
-        }
+              );
+            }
           },
         ),
       ),

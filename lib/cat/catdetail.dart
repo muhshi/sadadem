@@ -102,6 +102,16 @@ class Catdetail extends StatelessWidget {
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('No data available'));
                 } else {
+                  // Filter and sort data
+                  var filteredData = snapshot.data!
+                      .where((item) =>
+                          item['last_update'] != null &&
+                          item['last_update'].toString().isNotEmpty)
+                      .toList();
+
+                  filteredData.sort(
+                      (a, b) => b['last_update'].compareTo(a['last_update']));
+
                   return Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: Column(
@@ -110,32 +120,40 @@ class Catdetail extends StatelessWidget {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: snapshot.data!.length,
+                          itemCount: filteredData.length,
                           itemBuilder: (context, index) {
-                            var item = snapshot.data![index];
+                            var item = filteredData[index];
                             return _buildStatisticCategory(
                               icon: Icons.bar_chart_outlined,
                               title: item['title'],
-                              lastUpdate: item['last_update'] ?? '',
+                              lastUpdate: item['last_update'],
                               color: color,
                               onTap: () {
-                                var decodedId = utf8.decode(
-                                    base64.decode(item['id'].toString()));
+                                // var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                                // var arrayId = decodedId.split('#');
+                                // var id = arrayId[0];
+                                // Navigator.push(
+                                //   context,
+                                //   MaterialPageRoute(
+                                //     builder: (context) =>
+                                //         Dalem_table.DataTableScreen(
+                                //       id: id,
+                                //       title: item['title'],
+                                //     ),
+                                //   ),
+                                // );
+                                var decodedId = utf8.decode(base64.decode(item['id'].toString()));
                                 var arrayId = decodedId.split('#');
                                 var id = arrayId[0];
-                                var tableType = arrayId.length > 1
-                                    ? arrayId[1]
-                                    : '1'; // default '1' (statictable) jika tidak ada
+                                var tableType = arrayId.length > 1 ? arrayId[1] : '1'; // default '1' (statictable) jika tidak ada
 
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        Dalem_table.DataTableScreen(
+                                    builder: (context) => Dalem_table.DataTableScreen(
                                       id: id,
                                       title: item['title'],
-                                      tableType:
-                                          tableType, // tambahkan parameter ini
+                                      tableType: tableType, // tambahkan parameter ini
                                     ),
                                   ),
                                 );

@@ -1,7 +1,6 @@
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
 import 'package:flutter/material.dart';
-import 'package:html_unescape/html_unescape.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -9,14 +8,29 @@ import 'package:Dalem/components/offline_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:csv/csv.dart';
+import 'package:Dalem/components/notification_service.dart';
+
+// class DataTableScreen extends StatefulWidget {
+//   final String id;
+//   final String title;
+
+//   const DataTableScreen({super.key, required this.id, required this.title});
+
+//   @override
+//   DataTableScreenState createState() => DataTableScreenState();
+// }
 
 class DataTableScreen extends StatefulWidget {
   final String id;
   final String title;
-  final String tableType;
+  final String tableType; // tambahkan ini
 
-  const DataTableScreen(
-      {super.key, required this.id, required this.title, this.tableType = '1'});
+  const DataTableScreen({
+    super.key,
+    required this.id,
+    required this.title,
+    required this.tableType,
+  });
 
   @override
   DataTableScreenState createState() => DataTableScreenState();
@@ -43,10 +57,8 @@ class DataTableScreenState extends State<DataTableScreen> {
           "https://webapi.bps.go.id/v1/api/view/domain/3321/model/statictable/id/$idOnly/lang/ind/key/b73ea5437eb23fb8309858b840029da2/";
     } else if (widget.tableType == '2') {
       // Dynamic
-      final tahunSekarang = DateTime.now().year % 1000; // 2025 % 1000 = 25
-      final thParam = tahunSekarang.toString().padLeft(3, '0'); // '025'
       url =
-          "https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$idOnly&key=b73ea5437eb23fb8309858b840029da2&th=$thParam";
+          "https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$idOnly&th=024&key=b73ea5437eb23fb8309858b840029da2";
     } else {
       throw Exception('Tipe tabel tidak dikenali');
     }
@@ -72,60 +84,91 @@ class DataTableScreenState extends State<DataTableScreen> {
       }
     }
   }
+  // Future<Map<String, dynamic>> fetchDataTable() async {
+  //   final url =
+  //       "https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=${widget.id}&th=025&key=b73ea5437eb23fb8309858b840029da2";
+  //   try {
+  //     final response = await http.get(Uri.parse(url));
+  //     if (response.statusCode == 200) {
+  //       final jsonResponse = json.decode(response.body);
+  //       debugPrint(jsonResponse.toString());
+  //       // Pastikan data dikonversi ke Map<String, dynamic>
+  //       final Map<String, dynamic> castedResponse =
+  //           (jsonResponse as Map).cast<String, dynamic>();
+  //       // Save data offline
+  //       await OfflineStorage.saveData(url, castedResponse);
+  //       return castedResponse;
+  //     } else {
+  //       throw Exception(
+  //           'Gagal mengambil data dari API, status: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     // Load data from offline storage if API call fails
+  //     final offlineData = await OfflineStorage.loadData(url);
+  //     if (offlineData != null) {
+  //       return offlineData.cast<String, dynamic>();
+  //     } else {
+  //       throw Exception('Terjadi kesalahan saat mengambil data');
+  //     }
+  //   }
+  // }
 
   String generateHtmlTable(data) {
-    if (widget.tableType == '1') {
-      return HtmlUnescape().convert(data['data']['table']);
-    }
     var html = '''
     <table border="1" style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr style="background-color: rgb(0, 43, 106); color: white;">
           <th rowspan="3" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${data['labelvervar']}</th>
     ''';
+    final varData =
+        (data["var"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final vervarData =
+        (data["vervar"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final turvarData =
+        (data["turvar"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final dataContent =
+        (data["datacontent"] as Map?)?.cast<String, dynamic>() ?? {};
+    final tahun =
+        (data["tahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final turTahun =
+        (data["turtahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
+            [];
 
-    final varData = data["var"] ?? [];
-    final vervarData = data["vervar"] ?? [];
-    final turvarData = data["turvar"] ?? [];
-    final dataContent = data["datacontent"] ?? {} as Map<String, dynamic>;
-    final tahun = data["tahun"] ?? [];
-    final turTahun = data["turtahun"] ?? [];
-
-    varData.forEach((varData) {
+    for (var varData in varData) {
       html +=
           '<th colspan="${tahun.length * turvarData.length}" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${varData['label']}</th>';
-    });
+    }
     html +=
         '</tr><tr style="background-color: rgb(0, 43, 106); color: white;">';
 
-    varData.forEach((varData) {
-      turvarData.forEach((element) {
+    for (var varData in varData) {
+      for (var element in turvarData) {
         html +=
             '<th colspan="${tahun.length}" style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']}</th>';
-      });
-    });
+      }
+    }
 
     html +=
         '</tr><tr style="background-color: rgb(0, 43, 106); color: white;">';
 
-    varData.forEach((varData) {
-      turvarData.forEach((_) {
-        tahun.forEach((element) {
+    for (var varData in varData) {
+      for (var _ in turvarData) {
+        for (var element in tahun) {
           html +=
               '<th style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${element['label']}</th>';
-        });
-      });
-    });
+        }
+      }
+    }
 
     html += '</tr></thead><tbody>';
 
-    vervarData.forEach((vervar) {
+    for (var vervar in vervarData) {
       html += '<tr>';
       html +=
           '<td style="border: 1px solid #ddd; padding: 8px 12px; text-align: center;">${vervar['label']}</td>';
-      varData.forEach((varData) {
-        turvarData.forEach((turvar) {
-          tahun.forEach((tahun) {
+      for (var varData in varData) {
+        for (var turvar in turvarData) {
+          for (var tahun in tahun) {
             final key =
                 "${vervar["val"]}${varData["val"]}${turvar["val"]}${tahun['val']}${turTahun[0]['val']}";
             String value = dataContent[key]?.toString() ?? '-';
@@ -136,11 +179,11 @@ class DataTableScreenState extends State<DataTableScreen> {
             }
             html +=
                 '<td style="border: 1px solid #ddd; padding: 8px 12px; text-align: center;">$value</td>';
-          });
-        });
-      });
+          }
+        }
+      }
       html += '</tr>';
-    });
+    }
 
     html += '</tbody></table>';
 
@@ -148,84 +191,118 @@ class DataTableScreenState extends State<DataTableScreen> {
   }
 
   String generateCsv(data) {
-    final varData = data["var"] ?? [];
-    final vervarData = data["vervar"] ?? [];
-    final turvarData = data["turvar"] ?? [];
-    final dataContent = data["datacontent"] ?? {} as Map<String, dynamic>;
-    final tahun = data["tahun"] ?? [];
-    final turTahun = data["turtahun"] ?? [];
+    final varData =
+        (data["var"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final vervarData =
+        (data["vervar"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final turvarData =
+        (data["turvar"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final dataContent =
+        (data["datacontent"] as Map?)?.cast<String, dynamic>() ?? {};
+    final tahun =
+        (data["tahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final turTahun =
+        (data["turtahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
+            [];
 
     List<List<String>> csvData = [];
 
     // Header
     List<String> header1 = [''];
-    varData.forEach((varData) {
+    for (var varData in varData) {
       header1.addAll(
           List.filled(tahun.length * turvarData.length, varData['label']));
-    });
+    }
     csvData.add(header1);
 
     List<String> header2 = [data['labelvervar']];
-    varData.forEach((varData) {
-      turvarData.forEach((element) {
+    for (var varData in varData) {
+      for (var element in turvarData) {
         header2.addAll(List.filled(tahun.length,
             element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']));
-      });
-    });
+      }
+    }
     csvData.add(header2);
 
     List<String> header3 = [''];
-    varData.forEach((varData) {
-      turvarData.forEach((_) {
-        tahun.forEach((tahun) {
+    for (var varData in varData) {
+      for (var _ in turvarData) {
+        for (var tahun in tahun) {
           header3.add(tahun['label']);
-        });
-      });
-    });
+        }
+      }
+    }
     csvData.add(header3);
 
     // Rows
-    vervarData.forEach((vervar) {
+    for (var vervar in vervarData) {
       List<String> row = [vervar['label']];
-      varData.forEach((varData) {
-        turvarData.forEach((turvar) {
-          tahun.forEach((tahun) {
+      for (var varData in varData) {
+        for (var turvar in turvarData) {
+          for (var tahun in tahun) {
             final key =
                 "${vervar["val"]}${varData["val"]}${turvar["val"]}${tahun['val']}${turTahun[0]['val']}";
             row.add(dataContent[key]?.toString() ?? '-');
-          });
-        });
-      });
+          }
+        }
+      }
       csvData.add(row);
-    });
+    }
 
     return const ListToCsvConverter().convert(csvData);
   }
 
   Future<void> downloadCsv(String csv) async {
-    final directory = Directory('/storage/emulated/0/Download/Dalem');
-    final path = '${directory.path}/${widget.title}.xls';
-    final file = File(path);
-    await file.writeAsString(csv);
+  final directory = Directory('/storage/emulated/0/Download/Dalem');
+  // Gunakan seluruh id, ganti # dengan _ agar nama file valid dan unik
+  final safeId = widget.id.replaceAll('#', '_');
+  final path = '${directory.path}/${widget.title}_$safeId.xls';
+  final file = File(path);
+  await file.writeAsString(csv);
 
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Unduhan Berhasil'),
-            content: Text('File disimpan di: $path'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
+  if (mounted) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Unduhan Berhasil'),
+          content: Text('File disimpan di: $path'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
+}
+
+  // Future<void> downloadCsv(String csv) async {
+  //   final directory = Directory('/storage/emulated/0/Download/Dalem');
+  //   final path = '${directory.path}/${widget.title}.xls';
+  //   final file = File(path);
+  //   await file.writeAsString(csv);
+
+  //   if (mounted) {
+  //     showDialog(
+  //       context: context,
+  //       builder: (context) {
+  //         return AlertDialog(
+  //           title: Text('Unduhan Berhasil'),
+  //           content: Text('File disimpan di: $path'),
+  //           actions: [
+  //             TextButton(
+  //               onPressed: () => Navigator.of(context).pop(),
+  //               child: Text('OK'),
+  //             ),
+  //           ],
+  //         );
+  //       },
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -284,22 +361,26 @@ class DataTableScreenState extends State<DataTableScreen> {
                       HtmlWidget(generateHtmlTable(data)),
                       const SizedBox(height: 20),
                       Center(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade800,
-                          ),
-                          onPressed: () async {
-                            final csv = generateCsv(data);
-                            await downloadCsv(csv);
-                          },
-                          child: Text(
-                            'Download',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
+                        child: data["datacontent"] != null &&
+                                data["datacontent"].isNotEmpty
+                            ? ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade800,
+                                ),
+                                onPressed: () async {
+                                  final csv = generateCsv(data);
+                                  await downloadCsv(csv);
+                                },
+                                child: Text(
+                                  'Download',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              )
+                            : SizedBox
+                                .shrink(), // Tidak menampilkan apapun jika data kosong
                       ),
                       const SizedBox(height: 20),
                       Center(

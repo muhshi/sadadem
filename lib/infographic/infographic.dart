@@ -3,8 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:dio/dio.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class Infographic extends StatefulWidget {
   const Infographic({super.key});
@@ -281,8 +282,17 @@ class InfographicState extends State<Infographic> {
   }
 
   Future<bool> _requestPermission(Permission permission) async {
-    if (await permission.isGranted) {
-      return true;
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      if (androidInfo.version.sdkInt >= 33) {
+        // Android 13+ (Tiramisu)
+        final images = await Permission.photos.request();
+        return images.isGranted;
+      } else {
+        final result = await permission.request();
+        return result == PermissionStatus.granted;
+      }
     } else {
       final result = await permission.request();
       return result == PermissionStatus.granted;

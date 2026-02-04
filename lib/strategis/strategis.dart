@@ -89,8 +89,7 @@ class _StrategisState extends State<Strategis> {
                               builder: (context) => DataTableScreen(
                                 id: id,
                                 title: title,
-                                tableType:
-                                    '2', // Add the required argument here
+                                tableType: '2', // Add the required argument here
                               ),
                             ),
                           ),
@@ -181,11 +180,8 @@ class _StrategisState extends State<Strategis> {
 
   Future<String> fetchDescription(String id) async {
     try {
-      // Ambil tahun sekarang, lalu ambil 3 digit terakhir
-      final tahunSekarang = DateTime.now().year % 1000; // 2025 % 1000 = 25
-      final thParam = tahunSekarang.toString().padLeft(3, '0'); // '025'
       final response = await fetchData(
-          'https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$id&key=b73ea5437eb23fb8309858b840029da2&th=$thParam');
+          'https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$id&th=024&key=b73ea5437eb23fb8309858b840029da2');
       final data = response ?? {};
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];

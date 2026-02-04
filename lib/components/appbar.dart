@@ -41,7 +41,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           automaticallyImplyLeading: false,
           flexibleSpace: SizedBox(
             width: double.infinity,
-            height: 275.0, // Set the desired height for the background
+            height: 250.0, // Set the desired height for the background
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(.5), // Add color overlay
@@ -52,8 +52,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               child: IntrinsicHeight(
                 child: Padding(
-                  padding: const EdgeInsets.only(
-                      top: 40, bottom: 10), // jarak atas layar dengan image
+                  padding: const EdgeInsets.only(top: 40, bottom: 10), // jarak atas layar dengan image
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -61,7 +60,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       Center(
                         child: Image.asset(
                           'assets/img/homei.png',
-                          height: 80,
+                          height: 65,
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -70,12 +69,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           future: fetchData(
                               'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/keyword/strategis/key/b73ea5437eb23fb8309858b840029da2/'),
                           builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
                               return CarouselSlider.builder(
                                 options: CarouselOptions(
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.2,
+                                  height: MediaQuery.of(context).size.height * 0.2,
                                   autoPlay: true,
                                   autoPlayInterval: const Duration(seconds: 5),
                                   enlargeCenterPage: true,
@@ -84,23 +81,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 itemCount: 3, // Number of skeleton items
                                 itemBuilder: (context, index, realIndex) {
                                   return Card(
-                                    margin: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 10),
+                                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    color: Colors
-                                        .white, // Set the card color to white
+                                    color: Colors.white, // Set the card color to white
                                     child: Container(
-                                      width: MediaQuery.of(context).size.width *
-                                          0.8,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 5),
+                                      width: MediaQuery.of(context).size.width * 0.8,
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Container(
                                             width: double.infinity,
@@ -120,38 +111,28 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 },
                               );
                             } else if (snapshot.hasError) {
-                              return Center(
-                                  child: Text('Error: ${snapshot.error}'));
-                            } else if (!snapshot.hasData ||
-                                snapshot.data!.isEmpty) {
-                              return const Center(
-                                  child: Text('No data available'));
+                              return Center(child: Text('Error: ${snapshot.error}'));
+                            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return const Center(child: Text('No data available'));
                             } else {
                               return CarouselSlider(
                                 options: CarouselOptions(
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.2,
+                                  height: MediaQuery.of(context).size.height * 0.2,
                                   autoPlay: true,
                                   autoPlayInterval: const Duration(seconds: 5),
                                   enlargeCenterPage: true,
                                   scrollDirection: Axis.horizontal,
                                 ),
-                                items: snapshot.data!['data'][1]!
-                                    .map<Widget>((item) {
-                                  var decodedId = utf8.decode(
-                                      base64.decode(item['id'].toString()));
+                                items: snapshot.data!['data'][1]!.map<Widget>((item) {
+                                  var decodedId = utf8.decode(base64.decode(item['id'].toString()));
                                   var arrayId = decodedId.split('#');
                                   var id = arrayId[0];
 
-                                  var titleParts =
-                                      item['title'].split('Strategis] ');
-                                  var title = titleParts.length > 1
-                                      ? titleParts[1]
-                                      : item['title'];
+                                  var titleParts = item['title'].split('Strategis] ');
+                                  var title = titleParts.length > 1 ? titleParts[1] : item['title'];
                                   return _buildStatisticCategory(
                                     title: title,
-                                    color: Colors
-                                        .white, // Set the card color to white
+                                    color: Colors.white, // Set the card color to white
                                     id: id,
                                     onTap: () => Navigator.push(
                                       context,
@@ -159,8 +140,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                                         builder: (context) => DataTableScreen(
                                           id: id,
                                           title: title,
-                                          tableType:
-                                              '2', // Replace 'default' with the appropriate value
+                                          tableType: '2', // Replace 'default' with the appropriate value
                                         ),
                                       ),
                                     ),
@@ -190,8 +170,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      margin: const EdgeInsets.symmetric(
-          vertical: 10, horizontal: 10), // Add horizontal margin for spacing
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10), // Add horizontal margin for spacing
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
@@ -201,8 +180,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
           child: Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center, // Center all text vertically
+            mainAxisAlignment: MainAxisAlignment.center, // Center all text vertically
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
@@ -225,8 +203,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.white));
+                    return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white));
                   } else {
                     final data = snapshot.data ?? 'No description available';
                     return Center(
@@ -251,11 +228,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   Future<String> fetchDescription(String id) async {
     try {
-      // Ambil tahun sekarang, lalu ambil 3 digit terakhir
-      final tahunSekarang = DateTime.now().year % 1000; // 2025 % 1000 = 25
-      final thParam = tahunSekarang.toString().padLeft(3, '0'); // '025'
       final response = await fetchData(
-          'https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$id&key=b73ea5437eb23fb8309858b840029da2&th=$thParam');
+          'https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$id&th=024&key=b73ea5437eb23fb8309858b840029da2');
       final data = response ?? {};
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];

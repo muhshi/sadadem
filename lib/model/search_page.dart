@@ -1,4 +1,3 @@
-import 'package:Dalem/berita/detail_berita.dart';
 import 'package:Dalem/model/download.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
 import 'package:Dalem/publikasi/detail_publikasi.dart';
@@ -54,24 +53,24 @@ class _SearchPageState extends State<SearchPage> {
     final urls = [
       {
         'url':
-            'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/keyword/$query/key/b73ea5437eb23fb8309858b840029da2/',
+            'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/key/b73ea5437eb23fb8309858b840029da2/keyword/$query/',
         'type': 'table'
       },
       {
         'url':
-            'https://webapi.bps.go.id/v1/api/list/model/publication/lang/ind/domain/3321/keyword/$query/key/b73ea5437eb23fb8309858b840029da2/',
+            'https://webapi.bps.go.id/v1/api/list/model/publication/lang/ind/domain/3321/key/b73ea5437eb23fb8309858b840029da2/keyword/$query/',
         'type': 'publication'
       },
-      {
-        'url':
-            'https://webapi.bps.go.id/v1/api/list/model/news/lang/ind/domain/3321/keyword/$query/key/b73ea5437eb23fb8309858b840029da2/',
-        'type': 'news'
-      },
-      {
-        'url':
-            'https://webapi.bps.go.id/v1/api/list/model/infographic/lang/ind/domain/3321/keyword/$query/key/b73ea5437eb23fb8309858b840029da2/',
-        'type': 'infographic'
-      },
+      // {
+      //   'url':
+      //       'https://webapi.bps.go.id/v1/api/list/model/news/lang/ind/domain/3321/key/b73ea5437eb23fb8309858b840029da2/keyword/$query/',
+      //   'type': 'news'
+      // },
+      // {
+      // 'url':
+      //     'https://webapi.bps.go.id/v1/api/list/model/infographic/lang/ind/domain/3321/key/b73ea5437eb23fb8309858b840029da2/keyword/$query/',
+      // 'type': 'infographic'
+      // },
     ];
 
     List<Map<String, dynamic>> results = [];
@@ -82,8 +81,15 @@ class _SearchPageState extends State<SearchPage> {
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           for (var item in data['data'][1]) {
-            item['type'] = urlData['type'];
-            results.add(item);
+            // Filter hanya jika title mengandung query
+            if (item['title'] != null &&
+                item['title']
+                    .toString()
+                    .toLowerCase()
+                    .contains(query.toLowerCase())) {
+              item['type'] = urlData['type'];
+              results.add(item);
+            }
           }
         }
       }));
@@ -203,7 +209,8 @@ class _SearchPageState extends State<SearchPage> {
                                                 builder: (context) =>
                                                     DataTableScreen(
                                                         id: id,
-                                                        title: item['title']),
+                                                        title: item['title'],
+                                                        tableType: 'table'),
                                               ),
                                             );
                                           } else if (item['type'] ==
@@ -216,20 +223,16 @@ class _SearchPageState extends State<SearchPage> {
                                                         publication: item),
                                               ),
                                             );
-                                          } else if (item['type'] == 'news') {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    DetailBerita(
-                                                        newsId: item['news_id']
-                                                            .toString()),
-                                              ),
-                                            );
-                                          } else if (item['type'] ==
-                                              'infographic') {
-                                            _showFullScreenImage(
-                                                context, item['img']);
+                                            // } else if (item['type'] == 'news') {
+                                            //   Navigator.push(
+                                            //     context,
+                                            //     MaterialPageRoute(
+                                            //       builder: (context) =>
+                                            //           DetailBerita(newsId: item['news_id'].toString()),
+                                            //     ),
+                                            //   );
+                                            // } else if (item['type'] == 'infographic'){
+                                            //   _showFullScreenImage(context, item['img']);
                                           }
                                         } catch (e) {
                                           debugPrint('Error decoding ID: $e');

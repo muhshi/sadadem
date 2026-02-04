@@ -3,13 +3,15 @@ import 'package:Dalem/pdf/pdf.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
 import 'package:Dalem/subject/homepage.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
-
-import 'package:Dalem/components/bar.dart';
+import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../model/download.dart';
+import 'package:Dalem/components/bar.dart';
+import 'package:Dalem/components/notification_service.dart';
+
+// The duplicate class block is removed. Only keep one definition of DetailPublikasi and DetailPublikasiState.
 
 class DetailPublikasi extends StatefulWidget {
   final Map<String, dynamic> publication;
@@ -17,181 +19,158 @@ class DetailPublikasi extends StatefulWidget {
   const DetailPublikasi({super.key, required this.publication});
 
   @override
-  _DetailPublikasiState createState() => _DetailPublikasiState();
+  DetailPublikasiState createState() => DetailPublikasiState();
 }
 
-class _DetailPublikasiState extends State<DetailPublikasi> {
+class DetailPublikasiState extends State<DetailPublikasi> {
+  late Future<void> initialization;
+  String localFilePath = 'Lokasi default'; // You can update this after download
+  bool isDownloaded = false;
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
-  late String _localFilePath;
-  late String _localCoverPath;
-  bool _isDownloaded = false;
-  late Future<void> _initialization;
-  List<Map<String, String>> _downloadedFiles = [];
 
   @override
   void initState() {
     super.initState();
-    _initialization = _initializeLocalFilePath();
-    _loadDownloadedFiles();
-  }
-
-  Future<void> _initializeLocalFilePath() async {
-    if (await _requestPermission(Permission.storage)) {
-      final directory = Directory('/storage/emulated/0/Download/Dalem');
-      if (!directory.existsSync()) {
-        directory.createSync(recursive: true);
-      }
-      _localFilePath = '${directory.path}/${widget.publication['title']}.pdf';
-
-      final documentDir = await getApplicationDocumentsDirectory();
-      _localCoverPath =
-          '${documentDir.path}/${widget.publication['title']}_cover.jpg';
-
-      await _checkIfDownloaded();
-      await _loadDownloadedFiles(); // Refresh the loaded files after permission is granted
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission denied')),
-      );
-    }
+    initialization = _checkIfDownloaded();
   }
 
   Future<void> _checkIfDownloaded() async {
-    final file = File(_localFilePath);
-    if (await file.exists()) {
-      setState(() {
-        _isDownloaded = true;
-      });
-    }
-  }
-
-  Future<void> _loadDownloadedFiles() async {
-    if (await _requestPermission(Permission.storage)) {
+    try {
       final directory = Directory('/storage/emulated/0/Download/Dalem');
-      final files = directory
-          .listSync()
-          .where((item) => item.path.endsWith('.pdf'))
-          .map((item) {
-        final coverPath = item.path.replaceAll('.pdf', '_cover.jpg');
-        return {
-          'pdf': item.path,
-          'cover': coverPath,
-        };
-      }).toList();
-      setState(() {
-        _downloadedFiles = files;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission denied')),
-      );
-    }
-  }
+      final cleanTitle =
+          widget.publication['title'].replaceAll(RegExp(r'[^\w\s\-]'), '');
+      final filePath = '${directory.path}/$cleanTitle.pdf';
+      final file = File(filePath);
 
-  Future<void> _downloadPDF(
-      BuildContext context, String url, String coverUrl) async {
-    if (await _requestPermission(Permission.storage)) {
-      setState(() {
-        _isDownloading = true;
-        _downloadProgress = 0.0;
-      });
-
-      try {
-        final file = File(_localFilePath);
-        final coverFile = File(_localCoverPath);
-
-        await Dio().download(
-          url,
-          file.path,
-          onReceiveProgress: (received, total) {
-            if (total != -1) {
-              setState(() {
-                _downloadProgress = (received / total);
-              });
-            }
-          },
-        );
-
-        await Dio().download(coverUrl, coverFile.path);
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Unduhan Berhasil'),
-              content: Text('File disimpan di: $_localFilePath'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-        setState(() {
-          _isDownloaded = true;
-          _downloadedFiles.add({
-            'pdf': file.path,
-            'cover': coverFile.path,
+      if (await file.exists()) {
+        if (mounted) {
+          setState(() {
+            isDownloaded = true;
+            localFilePath = filePath;
           });
-        });
-      } catch (e) {
-        print(e);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error downloading PDF: $e')),
-        );
-      } finally {
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking file existence: $e');
+    }
+  }
+
+  Future<void> _savePdfWithFileSaver(
+      BuildContext context, String url, String title) async {
+    // Cek izin penyimpanan
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      if (androidInfo.version.sdkInt < 33) {
+        var status = await Permission.storage.status;
+        if (!status.isGranted) {
+          status = await Permission.storage.request();
+          if (!status.isGranted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Izin penyimpanan diperlukan')),
+              );
+            }
+            return;
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+    });
+
+    final notificationId =
+        DateTime.now().millisecondsSinceEpoch.remainder(100000);
+    final notificationService = NotificationService();
+
+    try {
+      // Tentukan direktori penyimpanan (sesuai dengan download.dart)
+      final directory = Directory('/storage/emulated/0/Download/Dalem');
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+
+      // Bersihkan nama file
+      final cleanTitle = title.replaceAll(RegExp(r'[^\w\s\-]'), '');
+      final filePath = '${directory.path}/$cleanTitle.pdf';
+      final file = File(filePath);
+
+      // Mulai download
+      final response =
+          await http.Client().send(http.Request('GET', Uri.parse(url)));
+
+      if (response.statusCode == 200) {
+        final totalLength = response.contentLength ?? 0;
+        int received = 0;
+        final List<int> bytes = [];
+
+        final stream = response.stream;
+        await for (var chunk in stream) {
+          bytes.addAll(chunk);
+          await notificationService.showProgressNotification(
+            id: notificationId,
+            title: 'Mengunduh Publikasi',
+            body: title,
+            progress: received,
+            maxProgress: totalLength,
+          );
+          received += chunk.length;
+          if (totalLength > 0) {
+            setState(() {
+              _downloadProgress = received / totalLength;
+            });
+          }
+        }
+
+        await file.writeAsBytes(bytes);
+
+        // Download Cover Image
+        try {
+          String coverUrl = widget.publication['cover'];
+          if (coverUrl.isNotEmpty) {
+            final coverResponse = await http.get(Uri.parse(coverUrl));
+            if (coverResponse.statusCode == 200) {
+              String ext = '.jpg';
+              if (coverUrl.toLowerCase().endsWith('.png')) ext = '.png';
+              if (coverUrl.toLowerCase().endsWith('.jpeg')) ext = '.jpeg';
+
+              final coverPath = '${directory.path}/$cleanTitle$ext';
+              final coverFile = File(coverPath);
+              await coverFile.writeAsBytes(coverResponse.bodyBytes);
+            }
+          }
+        } catch (e) {
+          debugPrint('Gagal mengunduh cover: $e');
+        }
+
         setState(() {
-          _isDownloading = false;
+          isDownloaded = true;
+          localFilePath = filePath;
         });
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission denied')),
-      );
-    }
-  }
-
-  Future<bool> _requestPermission(Permission permission) async {
-    if (await permission.isGranted) {
-      return true;
-    } else {
-      final result = await permission.request();
-      return result == PermissionStatus.granted;
-    }
-  }
-
-  Future<void> _movePDFToDownloads() async {
-    if (await _requestPermission(Permission.storage)) {
-      try {
-        final directory = Directory('/storage/emulated/0/Download/Dalem');
-        if (!directory.existsSync()) {
-          directory.createSync(recursive: true);
-        }
-        final newFile =
-            File('${directory.path}/${widget.publication['title']}.pdf');
-        final oldFile = File(_localFilePath);
-
-        if (await oldFile.exists()) {
-          await oldFile.copy(newFile.path);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('PDF moved to ${newFile.path}')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('PDF file does not exist')),
+        if (mounted) {
+          await notificationService.showCompleteNotification(
+            id: notificationId,
+            title: 'Unduhan Berhasil',
+            body: '$title telah diunduh.',
+            filePath: filePath,
           );
         }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error moving PDF: $e')),
-        );
+      } else {
+        throw Exception('Gagal mengunduh: ${response.statusCode}');
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission denied')),
-      );
+    } catch (e) {
+      await notificationService.showFailedNotification(
+          id: notificationId,
+          title: 'Unduhan Gagal',
+          body: 'Gagal mengunduh $title: $e');
+    } finally {
+      setState(() {
+        _isDownloading = false;
+      });
     }
   }
 
@@ -201,7 +180,7 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
       builder: (context) {
         return AlertDialog(
           title: Text('Lokasi Penyimpanan'),
-          content: Text('File disimpan di: $_localFilePath'),
+          content: Text('File disimpan di: $localFilePath'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -229,7 +208,7 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<void>(
-      future: _initialization,
+      future: initialization,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
@@ -260,40 +239,40 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                  child: SingleChildScrollView(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                            Center(
+                          Center(
                             child: Container(
                               width: 300,
                               height: 400,
                               decoration: BoxDecoration(
-                              border: Border.all(color: Colors.white),
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                color: Colors.black54,
-                                blurRadius: 20,
-                                offset: Offset(0, 5),
-                                ),
-                              ],
+                                border: Border.all(color: Colors.white),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black54,
+                                    blurRadius: 20,
+                                    offset: Offset(0, 5),
+                                  ),
+                                ],
                               ),
                               child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                widget.publication['cover'],
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: Colors.grey.shade200,
-                                child: Center(child: Icon(Icons.error)),
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  widget.publication['cover'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    color: Colors.grey.shade200,
+                                    child: Center(child: Icon(Icons.error)),
+                                  ),
                                 ),
                               ),
-                              ),
                             ),
-                            ),
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             widget.publication['title'],
@@ -322,76 +301,93 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        if (!_isDownloaded)
-                            ElevatedButton.icon(
+                        if (!isDownloaded)
+                          ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade600, // Change background color
+                              backgroundColor: Colors
+                                  .blue.shade600, // Change background color
                             ),
                             onPressed: () {
                               Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PDFViewerFromUrl(
-                                url: widget.publication['pdf'],
-                                title: widget.publication['title'],
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PDFViewerFromUrl(
+                                    url: widget.publication['pdf'],
+                                    title: widget.publication['title'],
+                                  ),
                                 ),
-                              ),
                               );
                             },
-                            icon: const Icon(Icons.remove_red_eye, color: Colors.white),
-                            label: const Text('Lhat', style: TextStyle(color: Colors.white)), // Change label
-                            ),
-                            if (_isDownloaded)
-                            ElevatedButton.icon(
+                            icon: const Icon(Icons.remove_red_eye,
+                                color: Colors.white),
+                            label: const Text('Lhat',
+                                style: TextStyle(
+                                    color: Colors.white)), // Change label
+                          ),
+                        if (isDownloaded)
+                          ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade600, // Change background color
+                              backgroundColor: Colors
+                                  .blue.shade600, // Change background color
                             ),
                             onPressed: _showDownloadLocation,
                             icon: const Icon(Icons.info, color: Colors.white),
-                            label: const Text('Info', style: TextStyle(color: Colors.white)),
-                            ),
+                            label: const Text('Info',
+                                style: TextStyle(color: Colors.white)),
+                          ),
                         SizedBox(
                           width: 200,
-                          child: ElevatedButton.icon(
-                            onPressed: _isDownloading
-                                ? null
-                                : _isDownloaded
-                                    ? () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                PDFViewerFromFile(
-                                              filePath: _localFilePath,
-                                              title:
-                                                  widget.publication['title'],
+                          child: Column(
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _isDownloading
+                                    ? () {}
+                                    : () {
+                                        if (isDownloaded) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  PDFViewerFromFile(
+                                                filePath: localFilePath,
+                                                title:
+                                                    widget.publication['title'],
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      }
-                                    : () => _downloadPDF(
-                                        context,
-                                        widget.publication['pdf'],
-                                        widget.publication['cover']),
-                                    icon: _isDownloading
-                                    ? CircularProgressIndicator(
-                                      value: _downloadProgress,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
+                                          );
+                                        } else {
+                                          _savePdfWithFileSaver(
+                                            context,
+                                            widget.publication['pdf'],
+                                            widget.publication['title'],
+                                          );
+                                        }
+                                      },
+                                icon: _isDownloading
+                                    ? SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 3,
+                                        ),
                                       )
-                                    : _isDownloaded
-                                      ? const Icon(Icons.open_in_new, color: Colors.white)
-                                      : const Icon(Icons.download, color: Colors.white),
-                                    label: _isDownloading
-                                    ? Text(
-                                      '${(_downloadProgress * 100).toStringAsFixed(0)}%', style: TextStyle(color: Colors.blue.shade600))
-                                    : _isDownloaded
-                                      ? const Text('Buka', style: TextStyle(color: Colors.white))
-                                      : Text(
-                                      'Unduh (${widget.publication['size'] ?? 'unknown'})', style: TextStyle(color: Colors.white)),
-                                    style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade600,
-                                    ),
+                                    : Icon(
+                                        isDownloaded
+                                            ? Icons.folder_open
+                                            : Icons.download,
+                                        color: Colors.white),
+                                label: _isDownloading
+                                    ? Text('Mengunduh...',
+                                        style: TextStyle(color: Colors.white))
+                                    : Text(
+                                        isDownloaded ? 'Buka' : 'Download PDF',
+                                        style: TextStyle(color: Colors.white)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -401,60 +397,60 @@ class _DetailPublikasiState extends State<DetailPublikasi> {
               ),
             ),
             bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Cari',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_open),
-            label: 'Publiksi',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.download),
-            label: 'Unduhan',
-          ),
-        ],
-        currentIndex: 2, // Set the initial selected index to Berita
-        selectedItemColor: Colors.blue.shade900,
-        unselectedItemColor: Colors.grey.shade700,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Homepage()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => SearchPage(autofocus: false)),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Publikasi()),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => DownloadedPublicationsPage()),
-              );
-              break;
-          }
-        },
-      ),
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.white,
+              items: const <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Beranda',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: 'Cari',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.file_open),
+                  label: 'Publiksi',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.download),
+                  label: 'Unduhan',
+                ),
+              ],
+              currentIndex: 2, // Set the initial selected index to Berita
+              selectedItemColor: Colors.blue.shade900,
+              unselectedItemColor: Colors.grey.shade700,
+              onTap: (index) {
+                switch (index) {
+                  case 0:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Homepage()),
+                    );
+                    break;
+                  case 1:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SearchPage(autofocus: false)),
+                    );
+                    break;
+                  case 2:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Publikasi()),
+                    );
+                    break;
+                  case 3:
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => DownloadedPublicationsPage()),
+                    );
+                    break;
+                }
+              },
+            ),
           );
         }
       },

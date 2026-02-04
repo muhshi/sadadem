@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/pdf/pdf.dart';
@@ -7,8 +6,9 @@ import 'package:Dalem/subject/homepage.dart';
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class DownloadedPublicationsPage extends StatefulWidget {
   final bool isBackHome;
@@ -44,153 +44,99 @@ class DownloadedPublicationsPageState
     }
   }
 
+  Future<void> _pickPdfFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'xls', 'xlsx'],
+    );
+    if (result != null && result.files.single.path != null) {
+      String filePath = result.files.single.path!;
+      await OpenFile.open(filePath);
+    }
+  }
+
   Future<bool> _requestPermission(Permission permission) async {
-    if (await permission.isGranted) {
-      return true;
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      if (androidInfo.version.sdkInt >= 33) {
+        final images = await Permission.photos.request();
+        return images.isGranted;
+      } else {
+        final result = await permission.request();
+        return result == PermissionStatus.granted;
+      }
     } else {
       final result = await permission.request();
       return result == PermissionStatus.granted;
     }
   }
 
-Future<List<Map<String, String>>> _loadDownloadedFiles() async {
-  final directory = Directory('/storage/emulated/0/Download/Dalem');
-  if (!await directory.exists()) {
-    return [];
-  }
-  final dataDir = await getApplicationDocumentsDirectory();
-  final files = directory
-      .listSync()
-      .where((item) =>
-          item.path.endsWith('.pdf') ||
-          item.path.endsWith('.jpg') ||
-          item.path.endsWith('.png'))
-      .map((item) {
-    final coverPath = item.path.endsWith('.pdf')
-        ? '${dataDir.path}/${item.path.split('/').last.replaceFirst('.pdf', '_cover.jpg')}'
-        : item.path;
-    return {
-      'file': item.path,
-      'cover': coverPath,
-    };
-  }).toList();
-  _sortFiles(files);
-  return files;
-}
+  Future<List<Map<String, String>>> _loadDownloadedFiles() async {
+    final directory = Directory('/storage/emulated/0/Download/Dalem');
+    if (!await directory.exists()) {
+      return [];
+    }
+    final files = directory
+        .listSync()
+        .whereType<File>()
+        .where((file) =>
+            file.path.endsWith('.pdf') ||
+            file.path.endsWith('.jpg') ||
+            file.path.endsWith('.jpeg') ||
+            file.path.endsWith('.png') ||
+            file.path.endsWith('.xls') ||
+            file.path.endsWith('.xlsx'))
+        .toList();
 
+    List<Map<String, String>> fileList = [];
+    for (var file in files) {
+      // Cek apakah file gambar ini merupakan cover dari file PDF/Excel yang ada
+      if (file.path.endsWith('.jpg') ||
+          file.path.endsWith('.jpeg') ||
+          file.path.endsWith('.png')) {
+        final baseName = file.path.substring(0, file.path.lastIndexOf('.'));
+        if (File('$baseName.pdf').existsSync() ||
+            File('$baseName.xls').existsSync() ||
+            File('$baseName.xlsx').existsSync()) {
+          continue;
+        }
+      }
 
-  void _sortFiles(List<Map<String, String>> files) {
-    if (_sortCriteria == 'name') {
-      files.sort((a, b) => a['file']!.compareTo(b['file']!));
+      String coverPath = '';
+      // Cek cover untuk semua tipe file (termasuk PDF)
+      final baseName = file.path.substring(0, file.path.lastIndexOf('.'));
+      for (var ext in ['.jpg', '.jpeg', '.png']) {
+        final possibleCover = File('$baseName$ext');
+        if (possibleCover.existsSync() && possibleCover.path != file.path) {
+          coverPath = possibleCover.path;
+          break;
+        }
+      }
+      fileList.add({'file': file.path, 'cover': coverPath});
+    }
+
+    // Sort files based on _sortCriteria
+    if (_sortCriteria == 'date') {
+      fileList.sort((a, b) {
+        final aFile = File(a['file']!);
+        final bFile = File(b['file']!);
+        return bFile.lastModifiedSync().compareTo(aFile.lastModifiedSync());
+      });
+    } else if (_sortCriteria == 'name') {
+      fileList.sort((a, b) =>
+          a['file']!.toLowerCase().compareTo(b['file']!.toLowerCase()));
     } else if (_sortCriteria == 'size') {
-      files.sort((a, b) {
-        final fileA = File(a['file']!);
-        final fileB = File(b['file']!);
-        return fileB.lengthSync().compareTo(fileA.lengthSync());
-      });
-    } else if (_sortCriteria == 'date') {
-      files.sort((a, b) {
-        final fileA = File(a['file']!);
-        final fileB = File(b['file']!);
-        return fileB.lastModifiedSync().compareTo(fileA.lastModifiedSync());
+      fileList.sort((a, b) {
+        final aFile = File(a['file']!);
+        final bFile = File(b['file']!);
+        return bFile.lengthSync().compareTo(aFile.lengthSync());
       });
     }
+
+    return fileList;
   }
 
-  void _deleteFile(int index, List<Map<String, String>> files) async {
-    final file = File(files[index]['file']!);
-    final coverFile = File(files[index]['cover']!);
-    if (await file.exists()) {
-      await file.delete();
-    }
-    if (await coverFile.exists()) {
-      await coverFile.delete();
-    }
-    setState(() {
-      files.removeAt(index);
-    });
-  }
-
-  void _confirmDeleteFile(int index, List<Map<String, String>> files) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Konfirmasi Hapus'),
-          content: Text('Apakah Anda yakin ingin menghapus file ini?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _deleteFile(index, files);
-              },
-              child: Text('Hapus'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _getFileSize(File file) {
-    final bytes = file.lengthSync();
-    if (bytes <= 0) return "0 B";
-    const suffixes = ["B", "KB", "MB", "GB", "TB"];
-    final i = (log(bytes) / log(1024)).floor();
-    return '${(bytes / pow(1024, i)).toStringAsFixed(2)} ${suffixes[i]}';
-  }
-
-  String _getFileType(File file) {
-    if (file.path.endsWith('.pdf')) {
-      return 'Publikasi';
-    } else if (file.path.endsWith('.jpg') ||
-        file.path.endsWith('.jpeg') ||
-        file.path.endsWith('.png')) {
-      return 'Infografis';
-    } else {
-      return 'Unknown';
-    }
-  }
-
-  void _showFileDetails(File file) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(file.path.split('/').last),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Lokasi: ${file.path}'),
-              Text('Ukuran: ${_getFileSize(file)}'),
-              Text('Tipe: ${_getFileType(file)}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Tutup'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // void _onItemTapped(int index) {
-  //   setState(() {
-  //     _selectedIndex = index;
-  //   });
-  //   if (index == 0) {
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => Homepage()),
-  //     );
   //   } else if (index == 1) {
   //     Navigator.push(
   //       context,
@@ -270,24 +216,30 @@ Future<List<Map<String, String>>> _loadDownloadedFiles() async {
                       itemBuilder: (context, index) {
                         final file = File(files[index]['file']!);
                         final coverFile = File(files[index]['cover']!);
+                        final hasCover = files[index]['cover']!.isNotEmpty &&
+                            coverFile.existsSync();
                         final fileType = _getFileType(file);
                         return ListTile(
-                          leading: coverFile.existsSync()
+                          leading: hasCover
                               ? Image.file(
                                   coverFile,
                                   width: 50,
                                   height: 50,
-                                  fit: BoxFit.fitHeight,
+                                  fit: BoxFit.cover,
                                 )
-                              : Icon(
-                                  file.path.endsWith('.pdf')
-                                      ? Icons.picture_as_pdf
-                                      : Icons.image,
-                                  size: 50,
-                                  color: file.path.endsWith('.pdf')
-                                      ? Colors.red
-                                      : Colors.blue,
-                                ),
+                              : file.path.endsWith('.pdf')
+                                  ? Icon(Icons.picture_as_pdf,
+                                      size: 50, color: Colors.red)
+                                  : file.path.endsWith('.xls') ||
+                                          file.path.endsWith('.xlsx')
+                                      ? Icon(Icons.insert_drive_file,
+                                          size: 50, color: Colors.green)
+                                      : Image.file(
+                                          file,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                        ),
                           title: Text(file.path.split('/').last),
                           subtitle: Text(fileType),
                           trailing: PopupMenuButton<String>(
@@ -324,32 +276,30 @@ Future<List<Map<String, String>>> _loadDownloadedFiles() async {
                               ),
                             ],
                           ),
-                          onTap: () {
+                          onTap: () async {
                             if (file.path.endsWith('.pdf')) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PDFViewerFromFile(
-                                      filePath: file.path,
-                                      title: file.path.split('/').last),
-                                ),
-                              );
+                              // Untuk Android 13+, jika permission denied, pakai file picker
+                              final deviceInfo = DeviceInfoPlugin();
+                              final androidInfo = await deviceInfo.androidInfo;
+                              if (Platform.isAndroid &&
+                                  androidInfo.version.sdkInt >= 33 &&
+                                  !_permissionGranted) {
+                                _pickPdfFile();
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PDFViewerFromFile(
+                                        filePath: file.path,
+                                        title: file.path.split('/').last),
+                                  ),
+                                );
+                              }
+                            } else if (file.path.endsWith('.xls') ||
+                                file.path.endsWith('.xlsx')) {
+                              await OpenFile.open(file.path);
                             } else {
-                              // showDialog(
-                              //   context: context,
-                              //   builder: (context) {
-                              //     return AlertDialog(
-                              //       content: Image.file(file),
-                              //       actions: [
-                              //         TextButton(
-                              //           onPressed: () => Navigator.pop(context),
-                              //           child: Text('Tutup'),
-                              //         ),
-                              //       ],
-                              //     );
-                              //   },
-                              // );
-                              _showFullScreenImage(context, file.path);
+                              showFullScreenImage(context, file.path);
                             }
                           },
                         );
@@ -364,32 +314,38 @@ Future<List<Map<String, String>>> _loadDownloadedFiles() async {
                   children: [
                     Icon(Icons.lock, size: 100, color: Colors.grey),
                     SizedBox(height: 20),
-                    Text('Izin penyimpanan diperlukan untuk mengakses unduhan',
+                    Text('Izin penyimpanan tidak diberikan atau tidak tersedia',
                         style: TextStyle(fontSize: 16)),
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _requestPermissionAndLoadFiles,
                       child: Text('Izinkan'),
                     ),
+                    SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: _pickPdfFile,
+                      icon: Icon(Icons.folder_open),
+                      label: Text('Buka File (PDF, Gambar, Tabel)'),
+                    ),
                   ],
                 ),
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final directory = Directory('/storage/emulated/0/Download/Dalem/');
-          if (await directory.exists()) {
-            await OpenFile.open(directory.path);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Directory does not exist')),
-            );
-          }
-        },
-        backgroundColor: Colors.blue.shade600,
-        tooltip: 'Buka dengan',
-        child: Icon(Icons.folder, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     final directory = Directory('/storage/emulated/0/Download/Dalem/');
+      //     if (await directory.exists()) {
+      //       await OpenFile.open(directory.path);
+      //     } else {
+      //       ScaffoldMessenger.of(context).showSnackBar(
+      //         SnackBar(content: Text('Directory does not exist')),
+      //       );
+      //     }
+      //   },
+      //   backgroundColor: Colors.blue.shade600,
+      //   tooltip: 'Buka dengan',
+      //   child: Icon(Icons.folder, color: Colors.white),
+      // ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
@@ -448,7 +404,24 @@ Future<List<Map<String, String>>> _loadDownloadedFiles() async {
     );
   }
 
-  void _showFullScreenImage(BuildContext context, String imagePath) {
+  String _getFileType(File file) {
+    final extension = file.path.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return 'Publikasi';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return 'Infografik';
+      case 'xls':
+      case 'xlsx':
+        return 'Table';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  void showFullScreenImage(BuildContext context, String imagePath) {
     showDialog(
       context: context,
       builder: (context) {
@@ -479,6 +452,77 @@ Future<List<Map<String, String>>> _loadDownloadedFiles() async {
           ),
         );
       },
+    );
+  }
+
+  void _showFileDetails(File file) async {
+    final stat = await file.stat();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Info File'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nama: ${file.path.split('/').last}'),
+              Text('Ukuran: ${stat.size} bytes'),
+              Text('Tipe: ${_getFileType(file)}'),
+              Text('Terakhir diubah: ${stat.modified}'),
+              Text('Path: ${file.path}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Tutup'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteFile(int index, List<Map<String, String>> files) async {
+    final filePath = files[index]['file'];
+    final coverPath = files[index]['cover'];
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Hapus File'),
+        content: Text('Apakah Anda yakin ingin menghapus file ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                if (filePath != null && File(filePath).existsSync()) {
+                  await File(filePath).delete();
+                }
+                if (coverPath != null &&
+                    coverPath.isNotEmpty &&
+                    File(coverPath).existsSync()) {
+                  await File(coverPath).delete();
+                }
+                Navigator.of(context).pop();
+                setState(() {
+                  _downloadedFiles = _loadDownloadedFiles();
+                });
+              } catch (e) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal menghapus file: $e')),
+                );
+              }
+            },
+            child: Text('Hapus'),
+          ),
+        ],
+      ),
     );
   }
 }

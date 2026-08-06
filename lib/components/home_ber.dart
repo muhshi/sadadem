@@ -2,8 +2,12 @@ import 'dart:convert';
 import 'package:Dalem/berita/detail_berita.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:html_unescape/html_unescape.dart';
 import 'package:http/http.dart' as http;
+import 'package:shimmer/shimmer.dart';
+import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/components/state_widgets.dart';
 
 class Homeberita extends StatefulWidget {
   final String title;
@@ -25,96 +29,137 @@ class HomeberitaState extends State<Homeberita> {
   }
 
   Future<List<dynamic>> fetchBerita() async {
-    final url =
-        'https://webapi.bps.go.id/v1/api/list/model/news/lang/ind/domain/3321/key/b73ea5437eb23fb8309858b840029da2/';
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      return [jsonResponse['data'][1][0]]; // Limit data to only one item
-    } else {
-      throw Exception('Failed to load data');
+    try {
+      final url = ApiConfig.listUrl(model: 'news');
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final dataList = jsonResponse['data'][1] as List<dynamic>;
+        if (dataList.isNotEmpty) {
+          return [dataList[0]];
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    const primaryNavy = Color(0xFF002B6A);
+
     return FutureBuilder<List<dynamic>>(
       future: futureBerita,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No data available'));
-        } else {
           return Container(
-            margin: EdgeInsets.symmetric(horizontal: 20.0),
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(16.0),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade200,
+              highlightColor: Colors.grey.shade100,
+              child: Container(
+                height: 250,
+                color: Colors.white,
+              ),
+            ),
+          );
+        } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: ErrorStateWidget(
+              isCompact: true,
+              title: 'Gagal Memuat Berita',
+              message: 'Tidak dapat terhubung ke server berita.',
+              onRetry: () {
+                setState(() {
+                  futureBerita = fetchBerita();
+                });
+              },
+            ),
+          );
+        } else {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16.0),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withAlpha(128),
-                  spreadRadius: 2,
-                  blurRadius: 10,
-                  offset: Offset(0, 3),
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: 10),
-                Text(
-                  widget.title,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                TextButton.icon(
-                  onPressed: widget.onSeeAll,
-                  icon: Icon(Icons.arrow_forward, color: Colors.blue.shade900),
-                  label: Text(
-                    'Lihat Semua',
-                    style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.blue.shade900,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    var item = snapshot.data![index];
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(vertical: 10),
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE11D48), // Rose accent for News
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.title,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: widget.onSeeAll,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Row(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: Image.network(
-                                item['picture'],
-                                width: double.infinity,
-                                height: 300,
-                                fit: BoxFit.cover,
+                            Text(
+                              'Lihat Semua',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: primaryNavy,
                               ),
                             ),
-                            SizedBox(height: 10),
-                            Text(
-                              item['rl_date'] ?? 'No Date',
-                              style: TextStyle(fontSize: 14, color: Colors.grey),
-                            ),
-                            SizedBox(height: 10),
-                            HtmlWidget(
-                              HtmlUnescape().convert(item['title'] ?? 'No Title'),
-                              textStyle: TextStyle(fontSize: 16),
-                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
                           ],
                         ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      var item = snapshot.data![index];
+                      return InkWell(
                         onTap: () {
                           Navigator.push(
                             context,
@@ -123,11 +168,72 @@ class HomeberitaState extends State<Homeberita> {
                             ),
                           );
                         },
-                      ),
-                    );
-                  },
-                ),
-              ],
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12.0),
+                                child: Image.network(
+                                  item['picture'],
+                                  width: double.infinity,
+                                  height: 220,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Shimmer.fromColors(
+                                      baseColor: Colors.grey.shade200,
+                                      highlightColor: Colors.grey.shade100,
+                                      child: Container(
+                                        width: double.infinity,
+                                        height: 220,
+                                        color: Colors.white,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 180,
+                                    color: Colors.grey.shade100,
+                                    child: const Center(
+                                      child: Icon(Icons.broken_image_rounded, color: Colors.grey, size: 40),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF64748B)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item['rl_date'] ?? 'No Date',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      color: const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              HtmlWidget(
+                                HtmlUnescape().convert(item['title'] ?? 'No Title'),
+                                textStyle: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           );
         }

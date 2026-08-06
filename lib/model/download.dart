@@ -1,14 +1,16 @@
-import 'package:Dalem/components/bar.dart';
-import 'package:Dalem/model/search_page.dart';
-import 'package:Dalem/pdf/pdf.dart';
-import 'package:Dalem/publikasi/publikasi.dart';
-import 'package:Dalem/subject/homepage.dart';
-import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+
+import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bar.dart';
+import 'package:Dalem/components/bottom_nav.dart';
+import 'package:Dalem/pdf/pdf.dart';
 
 class DownloadedPublicationsPage extends StatefulWidget {
   final bool isBackHome;
@@ -22,7 +24,7 @@ class DownloadedPublicationsPage extends StatefulWidget {
 class DownloadedPublicationsPageState
     extends State<DownloadedPublicationsPage> {
   late Future<List<Map<String, String>>> _downloadedFiles;
-  String _sortCriteria = 'name';
+  String _sortCriteria = 'date';
   bool _permissionGranted = false;
 
   @override
@@ -33,14 +35,19 @@ class DownloadedPublicationsPageState
 
   Future<void> _requestPermissionAndLoadFiles() async {
     if (await _requestPermission(Permission.storage)) {
-      setState(() {
-        _permissionGranted = true;
-      });
-      _downloadedFiles = _loadDownloadedFiles();
+      if (mounted) {
+        setState(() {
+          _permissionGranted = true;
+          _downloadedFiles = _loadDownloadedFiles();
+        });
+      }
     } else {
-      setState(() {
-        _permissionGranted = false;
-      });
+      if (mounted) {
+        setState(() {
+          _permissionGranted = false;
+          _downloadedFiles = Future.value([]);
+        });
+      }
     }
   }
 
@@ -91,7 +98,6 @@ class DownloadedPublicationsPageState
 
     List<Map<String, String>> fileList = [];
     for (var file in files) {
-      // Cek apakah file gambar ini merupakan cover dari file PDF/Excel yang ada
       if (file.path.endsWith('.jpg') ||
           file.path.endsWith('.jpeg') ||
           file.path.endsWith('.png')) {
@@ -104,7 +110,6 @@ class DownloadedPublicationsPageState
       }
 
       String coverPath = '';
-      // Cek cover untuk semua tipe file (termasuk PDF)
       final baseName = file.path.substring(0, file.path.lastIndexOf('.'));
       for (var ext in ['.jpg', '.jpeg', '.png']) {
         final possibleCover = File('$baseName$ext');
@@ -116,7 +121,6 @@ class DownloadedPublicationsPageState
       fileList.add({'file': file.path, 'cover': coverPath});
     }
 
-    // Sort files based on _sortCriteria
     if (_sortCriteria == 'date') {
       fileList.sort((a, b) {
         final aFile = File(a['file']!);
@@ -137,271 +141,274 @@ class DownloadedPublicationsPageState
     return fileList;
   }
 
-  //   } else if (index == 1) {
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => SearchPage(autofocus: false,)),
-  //     );
-  //   } else if (index == 2) {
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => DownloadedPublicationsPage()),
-  //     );
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.backgroundScaffold,
       appBar: AppBar2(
-        title: 'Unduhan',
+        title: 'File Unduhan',
         actions: [
-          DropdownButton<String>(
-            value: _sortCriteria,
-            dropdownColor: Colors.black,
-            style: TextStyle(color: Colors.white),
-            items: [
-              DropdownMenuItem(
-                value: 'date',
-                child: Text('Terbaru', style: TextStyle(color: Colors.white)),
+          Theme(
+            data: Theme.of(context).copyWith(
+              canvasColor: AppColors.primaryNavy,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _sortCriteria,
+                icon: const Icon(Icons.sort_rounded, color: Colors.white, size: 20),
+                style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                items: [
+                  DropdownMenuItem(
+                    value: 'date',
+                    child: Text('Terbaru', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                  ),
+                  DropdownMenuItem(
+                    value: 'name',
+                    child: Text('Nama (A-Z)', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                  ),
+                  DropdownMenuItem(
+                    value: 'size',
+                    child: Text('Ukuran Terbesar', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _sortCriteria = value!;
+                    _downloadedFiles = _loadDownloadedFiles();
+                  });
+                },
               ),
-              DropdownMenuItem(
-                value: 'name',
-                child:
-                    Text('Nama (A-Z)', style: TextStyle(color: Colors.white)),
-              ),
-              DropdownMenuItem(
-                value: 'size',
-                child: Text('Ukuran Terbesar',
-                    style: TextStyle(color: Colors.white)),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() {
-                _sortCriteria = value!;
-                _downloadedFiles = _loadDownloadedFiles();
-              });
-            },
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Container(
-        color: Colors.white,
-        child: _permissionGranted
-            ? FutureBuilder<List<Map<String, String>>>(
-                future: _downloadedFiles,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(
-                        child: Text('Error loading files: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.cloud_download,
-                              size: 100, color: Colors.grey),
-                          SizedBox(height: 20),
-                          Text('Kamu belum mengunduh apapun',
-                              style: TextStyle(fontSize: 16)),
-                        ],
-                      ),
-                    );
-                  } else {
-                    final files = snapshot.data!;
-                    return ListView.builder(
-                      itemCount: files.length,
-                      itemBuilder: (context, index) {
-                        final file = File(files[index]['file']!);
-                        final coverFile = File(files[index]['cover']!);
-                        final hasCover = files[index]['cover']!.isNotEmpty &&
-                            coverFile.existsSync();
-                        final fileType = _getFileType(file);
-                        return ListTile(
-                          leading: hasCover
-                              ? Image.file(
-                                  coverFile,
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.cover,
-                                )
-                              : file.path.endsWith('.pdf')
-                                  ? Icon(Icons.picture_as_pdf,
-                                      size: 50, color: Colors.red)
-                                  : file.path.endsWith('.xls') ||
-                                          file.path.endsWith('.xlsx')
-                                      ? Icon(Icons.insert_drive_file,
-                                          size: 50, color: Colors.green)
-                                      : Image.file(
-                                          file,
-                                          width: 50,
-                                          height: 50,
-                                          fit: BoxFit.cover,
-                                        ),
-                          title: Text(file.path.split('/').last),
-                          subtitle: Text(fileType),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (value) async {
-                              if (value == 'details') {
-                                _showFileDetails(file);
-                              } else if (value == 'delete') {
-                                _confirmDeleteFile(index, files);
-                              } else if (value == 'open_with') {
+      body: _permissionGranted
+          ? FutureBuilder<List<Map<String, String>>>(
+              future: _downloadedFiles,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildShimmerLoading();
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Gagal memuat file: ${snapshot.error}',
+                      style: GoogleFonts.plusJakartaSans(color: AppColors.accentRose),
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return _buildEmptyState();
+                } else {
+                  final files = snapshot.data!;
+                  return ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(14.0),
+                    itemCount: files.length,
+                    itemBuilder: (context, index) {
+                      final file = File(files[index]['file']!);
+                      final coverFile = File(files[index]['cover']!);
+                      final hasCover = files[index]['cover']!.isNotEmpty &&
+                          coverFile.existsSync();
+                      final fileType = _getFileType(file);
+                      final fileName = file.path.split('/').last;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceCard,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: AppColors.cardShadow,
+                          border: Border.all(color: AppColors.borderDefault),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () async {
+                              if (file.path.endsWith('.pdf')) {
+                                final deviceInfo = DeviceInfoPlugin();
+                                final androidInfo =
+                                    await deviceInfo.androidInfo;
+                                if (Platform.isAndroid &&
+                                    androidInfo.version.sdkInt >= 33 &&
+                                    !_permissionGranted) {
+                                  _pickPdfFile();
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PDFViewerFromFile(
+                                          filePath: file.path,
+                                          title: fileName),
+                                    ),
+                                  );
+                                }
+                              } else if (file.path.endsWith('.xls') ||
+                                  file.path.endsWith('.xlsx')) {
                                 await OpenFile.open(file.path);
+                              } else {
+                                showFullScreenImage(context, file.path);
                               }
                             },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'open_with',
-                                child: ListTile(
-                                  leading: Icon(Icons.open_in_new),
-                                  title: Text('Buka dengan'),
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'details',
-                                child: ListTile(
-                                  leading: Icon(Icons.info),
-                                  title: Text('Info'),
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: ListTile(
-                                  leading: Icon(Icons.delete),
-                                  title: Text('Hapus'),
-                                ),
-                              ),
-                            ],
-                          ),
-                          onTap: () async {
-                            if (file.path.endsWith('.pdf')) {
-                              // Untuk Android 13+, jika permission denied, pakai file picker
-                              final deviceInfo = DeviceInfoPlugin();
-                              final androidInfo = await deviceInfo.androidInfo;
-                              if (Platform.isAndroid &&
-                                  androidInfo.version.sdkInt >= 33 &&
-                                  !_permissionGranted) {
-                                _pickPdfFile();
-                              } else {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PDFViewerFromFile(
-                                        filePath: file.path,
-                                        title: file.path.split('/').last),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: hasCover
+                                        ? Image.file(
+                                            coverFile,
+                                            width: 55,
+                                            height: 55,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : _buildFileTypeIcon(file.path),
                                   ),
-                                );
-                              }
-                            } else if (file.path.endsWith('.xls') ||
-                                file.path.endsWith('.xlsx')) {
-                              await OpenFile.open(file.path);
-                            } else {
-                              showFullScreenImage(context, file.path);
-                            }
-                          },
-                        );
-                      },
-                    );
-                  }
-                },
-              )
-            : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.lock, size: 100, color: Colors.grey),
-                    SizedBox(height: 20),
-                    Text('Izin penyimpanan tidak diberikan atau tidak tersedia',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _requestPermissionAndLoadFiles,
-                      child: Text('Izinkan'),
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed: _pickPdfFile,
-                      icon: Icon(Icons.folder_open),
-                      label: Text('Buka File (PDF, Gambar, Tabel)'),
-                    ),
-                  ],
-                ),
-              ),
-      ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () async {
-      //     final directory = Directory('/storage/emulated/0/Download/Dalem/');
-      //     if (await directory.exists()) {
-      //       await OpenFile.open(directory.path);
-      //     } else {
-      //       ScaffoldMessenger.of(context).showSnackBar(
-      //         SnackBar(content: Text('Directory does not exist')),
-      //       );
-      //     }
-      //   },
-      //   backgroundColor: Colors.blue.shade600,
-      //   tooltip: 'Buka dengan',
-      //   child: Icon(Icons.folder, color: Colors.white),
-      // ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Cari',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_open),
-            label: 'Publikasi',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.download),
-            label: 'Unduhan',
-          ),
-        ],
-        currentIndex: 3, // Set the initial selected index to Downloads
-        selectedItemColor: Colors.blue.shade900,
-        unselectedItemColor: Colors.grey.shade700,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Homepage()),
-              );
-              break;
-            case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => SearchPage(autofocus: false)),
-              );
-              break;
-            case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Publikasi()),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => DownloadedPublicationsPage()),
-              );
-              break;
-          }
-        },
-      ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _getFileTypeColor(file.path)
+                                                .withOpacity(0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            fileType,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: _getFileTypeColor(file.path),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          fileName,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textPrimary,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert_rounded,
+                                        color: AppColors.textMuted),
+                                    onSelected: (value) async {
+                                      if (value == 'details') {
+                                        _showFileDetails(file);
+                                      } else if (value == 'delete') {
+                                        _confirmDeleteFile(index, files);
+                                      } else if (value == 'open_with') {
+                                        await OpenFile.open(file.path);
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem(
+                                        value: 'open_with',
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.open_in_new_rounded,
+                                                size: 18, color: AppColors.primaryNavy),
+                                            const SizedBox(width: 8),
+                                            Text('Buka dengan',
+                                                style: GoogleFonts.plusJakartaSans(fontSize: 13)),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'details',
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.info_outline_rounded,
+                                                size: 18, color: AppColors.textSecondary),
+                                            const SizedBox(width: 8),
+                                            Text('Informasi',
+                                                style: GoogleFonts.plusJakartaSans(fontSize: 13)),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.delete_outline_rounded,
+                                                size: 18, color: AppColors.accentRose),
+                                            const SizedBox(width: 8),
+                                            Text('Hapus',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                    fontSize: 13, color: AppColors.accentRose)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+            )
+          : _buildPermissionDeniedState(),
+      bottomNavigationBar: const BottomNav(currentIndex: 3),
     );
+  }
+
+  Widget _buildFileTypeIcon(String path) {
+    if (path.endsWith('.pdf')) {
+      return Container(
+        width: 55,
+        height: 55,
+        color: AppColors.accentRose.withOpacity(0.1),
+        child: const Icon(Icons.picture_as_pdf_rounded,
+            size: 28, color: AppColors.accentRose),
+      );
+    } else if (path.endsWith('.xls') || path.endsWith('.xlsx')) {
+      return Container(
+        width: 55,
+        height: 55,
+        color: Colors.green.withOpacity(0.1),
+        child: const Icon(Icons.table_view_rounded,
+            size: 28, color: Colors.green),
+      );
+    } else {
+      return Container(
+        width: 55,
+        height: 55,
+        color: AppColors.accentTeal.withOpacity(0.1),
+        child: const Icon(Icons.image_rounded,
+            size: 28, color: AppColors.accentTeal),
+      );
+    }
+  }
+
+  Color _getFileTypeColor(String path) {
+    if (path.endsWith('.pdf')) {
+      return AppColors.primaryNavy;
+    } else if (path.endsWith('.xls') || path.endsWith('.xlsx')) {
+      return Colors.green.shade700;
+    } else {
+      return AppColors.accentTeal;
+    }
   }
 
   String _getFileType(File file) {
@@ -415,10 +422,120 @@ class DownloadedPublicationsPageState
         return 'Infografik';
       case 'xls':
       case 'xlsx':
-        return 'Table';
+        return 'Tabel Statistik';
       default:
-        return 'Unknown';
+        return 'File';
     }
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.primaryNavy.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cloud_download_rounded,
+              size: 64,
+              color: AppColors.primaryNavy,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Belum Ada File Terunduh',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'File publikasi, tabel, atau infografis\nyang diunduh akan muncul di sini',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionDeniedState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.folder_off_rounded,
+                size: 64, color: AppColors.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              'Akses Penyimpanan Terbatas',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Berikan izin penyimpanan untuk melihat daftar unduhan Anda',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _requestPermissionAndLoadFiles,
+              icon: const Icon(Icons.security_rounded, size: 18),
+              label: Text('Berikan Izin',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _pickPdfFile,
+              icon: const Icon(Icons.folder_open_rounded, size: 18),
+              label: Text('Buka File Manual',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey.shade200,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+              height: 75,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void showFullScreenImage(BuildContext context, String imagePath) {
@@ -427,25 +544,32 @@ class DownloadedPublicationsPageState
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.all(10),
+          insetPadding: const EdgeInsets.all(10),
           child: Stack(
             children: [
               Positioned.fill(
                 child: InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 0.5,
-                    maxScale: 4.0,
-                    child: Image.file(
-                      File(imagePath),
-                      fit: BoxFit.contain,
-                    )),
+                  panEnabled: true,
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Image.file(
+                    File(imagePath),
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
               Positioned(
                 top: 10,
                 right: 10,
-                child: IconButton(
-                  icon: Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
               ),
             ],
@@ -457,26 +581,40 @@ class DownloadedPublicationsPageState
 
   void _showFileDetails(File file) async {
     final stat = await file.stat();
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Info File'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Informasi File',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: AppColors.textPrimary,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Nama: ${file.path.split('/').last}'),
-              Text('Ukuran: ${stat.size} bytes'),
-              Text('Tipe: ${_getFileType(file)}'),
-              Text('Terakhir diubah: ${stat.modified}'),
-              Text('Path: ${file.path}'),
+              _buildDetailRow('Nama', file.path.split('/').last),
+              _buildDetailRow('Ukuran', '${(stat.size / 1024).toStringAsFixed(1)} KB'),
+              _buildDetailRow('Tipe', _getFileType(file)),
+              _buildDetailRow('Lokasi', file.path),
             ],
           ),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Tutup'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryNavy,
+              ),
+              child: Text('Tutup',
+                  style: GoogleFonts.plusJakartaSans(color: Colors.white)),
             ),
           ],
         );
@@ -484,20 +622,68 @@ class DownloadedPublicationsPageState
     );
   }
 
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmDeleteFile(int index, List<Map<String, String>> files) async {
     final filePath = files[index]['file'];
     final coverPath = files[index]['cover'];
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Hapus File'),
-        content: Text('Apakah Anda yakin ingin menghapus file ini?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Hapus File',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus file ini dari perangkat?',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Batal'),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.plusJakartaSans(color: AppColors.textSecondary),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentRose,
+            ),
             onPressed: () async {
               try {
                 if (filePath != null && File(filePath).existsSync()) {
@@ -508,18 +694,25 @@ class DownloadedPublicationsPageState
                     File(coverPath).existsSync()) {
                   await File(coverPath).delete();
                 }
-                Navigator.of(context).pop();
-                setState(() {
-                  _downloadedFiles = _loadDownloadedFiles();
-                });
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    _downloadedFiles = _loadDownloadedFiles();
+                  });
+                }
               } catch (e) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Gagal menghapus file: $e')),
-                );
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal menghapus file: $e')),
+                  );
+                }
               }
             },
-            child: Text('Hapus'),
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white),
+            ),
           ),
         ],
       ),

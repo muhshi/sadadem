@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/components/offline_storage.dart';
+import 'package:Dalem/config/api_config.dart';
 
 Future<Map<String, dynamic>> fetchData(String url) async {
   try {
@@ -33,193 +36,248 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PreferredSize(
-        preferredSize: const Size.fromHeight(100.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          flexibleSpace: SizedBox(
-            width: double.infinity,
-            height: 250.0, // Set the desired height for the background
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(.5), // Add color overlay
-                image: DecorationImage(
-                  image: AssetImage('assets/img/stta.png'),
-                  fit: BoxFit.cover,
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF001F4E),
+              Color(0xFF002B6A),
+              Color(0xFF1A5FAF),
+            ],
+          ),
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x29000000),
+              blurRadius: 16,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/img/homei.png',
+                    height: 55,
+                    errorBuilder: (context, error, stackTrace) => Text(
+                      'BPS KABUPATEN DEMAK',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 40, bottom: 10), // jarak atas layar dengan image
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
                     children: [
-                      const SizedBox(height: 0),
-                      Center(
-                        child: Image.asset(
-                          'assets/img/homei.png',
-                          height: 65,
+                      Container(
+                        width: 4,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4A843),
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Expanded(
-                        child: FutureBuilder<dynamic>(
-                          future: fetchData(
-                              'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/keyword/strategis/key/b73ea5437eb23fb8309858b840029da2/'),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return CarouselSlider.builder(
-                                options: CarouselOptions(
-                                  height: MediaQuery.of(context).size.height * 0.2,
-                                  autoPlay: true,
-                                  autoPlayInterval: const Duration(seconds: 5),
-                                  enlargeCenterPage: true,
-                                  scrollDirection: Axis.horizontal,
-                                ),
-                                itemCount: 3, // Number of skeleton items
-                                itemBuilder: (context, index, realIndex) {
-                                  return Card(
-                                    margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    color: Colors.white, // Set the card color to white
-                                    child: Container(
-                                      width: MediaQuery.of(context).size.width * 0.8,
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            width: double.infinity,
-                                            height: 20,
-                                            color: Colors.grey.shade400,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Container(
-                                            width: double.infinity,
-                                            height: 20,
-                                            color: Colors.grey.shade400,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            } else if (snapshot.hasError) {
-                              return Center(child: Text('Error: ${snapshot.error}'));
-                            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                              return const Center(child: Text('No data available'));
-                            } else {
-                              return CarouselSlider(
-                                options: CarouselOptions(
-                                  height: MediaQuery.of(context).size.height * 0.2,
-                                  autoPlay: true,
-                                  autoPlayInterval: const Duration(seconds: 5),
-                                  enlargeCenterPage: true,
-                                  scrollDirection: Axis.horizontal,
-                                ),
-                                items: snapshot.data!['data'][1]!.map<Widget>((item) {
-                                  var decodedId = utf8.decode(base64.decode(item['id'].toString()));
-                                  var arrayId = decodedId.split('#');
-                                  var id = arrayId[0];
-
-                                  var titleParts = item['title'].split('Strategis] ');
-                                  var title = titleParts.length > 1 ? titleParts[1] : item['title'];
-                                  return _buildStatisticCategory(
-                                    title: title,
-                                    color: Colors.white, // Set the card color to white
-                                    id: id,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => DataTableScreen(
-                                          id: id,
-                                          title: title,
-                                          tableType: '2', // Replace 'default' with the appropriate value
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              );
-                            }
-                          },
+                      const SizedBox(width: 8),
+                      Text(
+                        'INDIKATOR STRATEGIS KABUPATEN DEMAK',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                FutureBuilder<dynamic>(
+                  future: fetchData(
+                      ApiConfig.listUrl(model: 'tablestatistic', keyword: 'strategis')),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CarouselSlider.builder(
+                        options: CarouselOptions(
+                          height: 130,
+                          autoPlay: true,
+                          autoPlayInterval: const Duration(seconds: 5),
+                          enlargeCenterPage: true,
+                          viewportFraction: 0.88,
+                        ),
+                        itemCount: 3,
+                        itemBuilder: (context, index, realIndex) {
+                          return Shimmer.fromColors(
+                            baseColor: Colors.white.withOpacity(0.1),
+                            highlightColor: Colors.white.withOpacity(0.25),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    } else if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Gagal memuat indikator',
+                          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+                        ),
+                      );
+                    } else if (!snapshot.hasData || snapshot.data!['data'][1] == null) {
+                      return Center(
+                        child: Text(
+                          'Data tidak tersedia',
+                          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+                        ),
+                      );
+                    } else {
+                      final items = snapshot.data!['data'][1] as List<dynamic>;
+                      return CarouselSlider(
+                        options: CarouselOptions(
+                          height: 130,
+                          autoPlay: true,
+                          autoPlayInterval: const Duration(seconds: 4),
+                          enlargeCenterPage: true,
+                          viewportFraction: 0.88,
+                        ),
+                        items: items.map<Widget>((item) {
+                          var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                          var arrayId = decodedId.split('#');
+                          var id = arrayId[0];
+
+                          var titleParts = item['title'].split('Strategis] ');
+                          var title = titleParts.length > 1 ? titleParts[1] : item['title'];
+                          return _buildStatisticCategory(
+                            title: title,
+                            id: id,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DataTableScreen(
+                                  id: id,
+                                  title: title,
+                                  tableType: '2',
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                  },
+                ),
+              ],
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(100.0);
+  Size get preferredSize => const Size.fromHeight(230.0);
 
   Widget _buildStatisticCategory({
     required String title,
-    required Color color,
     required String id,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10), // Add horizontal margin for spacing
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
       ),
-      color: color, // Set the card color to the passed color
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // Center all text vertically
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Text(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
                   title,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color.fromRGBO(100, 100, 100, 1),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF475569),
                     fontSize: 12,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              FutureBuilder<String>(
-                future: fetchDescription(id),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white));
-                  } else {
-                    final data = snapshot.data ?? 'No description available';
-                    return Center(
-                      child: Text(
-                        data,
-                        style: const TextStyle(
-                          color: Color.fromRGBO(0, 70, 175, 1),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                const SizedBox(height: 6),
+                FutureBuilder<String>(
+                  future: fetchDescription(id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade100,
+                        child: Container(
+                          width: 120,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
+                      );
+                    } else if (snapshot.hasError) {
+                      return Text(
+                        '-',
+                        style: GoogleFonts.plusJakartaSans(color: Colors.red),
+                      );
+                    } else {
+                      final data = snapshot.data ?? 'Memuat...';
+                      return Text(
+                        data,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF002B6A),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -228,8 +286,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   Future<String> fetchDescription(String id) async {
     try {
-      final response = await fetchData(
-          'https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$id&th=024&key=b73ea5437eb23fb8309858b840029da2');
+      final response = await fetchData(ApiConfig.dataUrl(varId: id));
       final data = response ?? {};
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];
@@ -250,7 +307,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       var resTahun = tahun[tahun.length - 1]["label"];
       return '$resValue ($resTahun)';
     } catch (e) {
-      return 'Error: $e';
+      return 'Data belum tersedia';
     }
   }
 }

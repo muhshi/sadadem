@@ -2,23 +2,25 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/components/offline_storage.dart';
+import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/components/state_widgets.dart';
 
 Future<Map<String, dynamic>> fetchData(String url) async {
   try {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
-      // Save data offline
       await OfflineStorage.saveData(url, jsonResponse);
       return jsonResponse;
     } else {
       throw Exception('Failed to load data');
     }
   } catch (e) {
-    // Load data from offline storage if API call fails
     final offlineData = await OfflineStorage.loadData(url);
     if (offlineData != null) {
       return offlineData;
@@ -39,139 +41,196 @@ class Strategis extends StatefulWidget {
 }
 
 class _StrategisState extends State<Strategis> {
-  List<Map<String, dynamic>> searchHistory = [];
+  late Future<dynamic> _dataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
+    _dataFuture = fetchData(
+      ApiConfig.listUrl(model: 'tablestatistic', keyword: 'strategis'),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar2(
         title: widget.title,
       ),
-      body: Container(
-        color: Colors.white,
-        child: Column(
-          children: [
-            Expanded(
-              child: FutureBuilder<dynamic>(
-                future: fetchData(
-                  'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/keyword/strategis/key/b73ea5437eb23fb8309858b840029da2/',
-                ),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No data available'));
-                  } else {
-                    searchHistory.add(snapshot.data!);
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      itemCount: snapshot.data!['data'][1]!.length,
-                      itemBuilder: (context, index) {
-                        var item = snapshot.data!['data'][1]![index];
-                        var decodedId =
-                            utf8.decode(base64.decode(item['id'].toString()));
-                        var arrayId = decodedId.split('#');
-                        var id = arrayId[0];
+      body: FutureBuilder<dynamic>(
+        future: _dataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              itemCount: 5,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.grey.shade300,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          } else if (snapshot.hasError) {
+            return ErrorStateWidget(
+              title: 'Gagal Memuat Indikator Strategis',
+              message: 'Tidak dapat mengambil data indikator strategis dari server.',
+              onRetry: () {
+                setState(() {
+                  _loadData();
+                });
+              },
+            );
+          } else if (!snapshot.hasData || snapshot.data!['data'] == null || snapshot.data!['data'][1] == null) {
+            return const EmptyStateWidget(
+              title: 'Data Strategis Kosong',
+              message: 'Belum ada indikator strategis yang tersedia.',
+            );
+          } else {
+            final items = snapshot.data!['data'][1] as List<dynamic>;
+            return ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                var item = items[index];
+                var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                var arrayId = decodedId.split('#');
+                var id = arrayId[0];
 
-                        var titleParts = item['title'].split('Strategis] ');
-                        var title = titleParts.length > 1
-                            ? titleParts[1]
-                            : item['title'];
-                        return _buildStatisticCategory(
-                          title: title,
-                          color: widget.color,
+                var titleParts = item['title'].split('Strategis] ');
+                var title = titleParts.length > 1 ? titleParts[1] : item['title'];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildStatisticCategory(
+                    title: title,
+                    id: id,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DataTableScreen(
                           id: id,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DataTableScreen(
-                                id: id,
-                                title: title,
-                                tableType: '2', // Add the required argument here
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
+                          title: title,
+                          tableType: '2',
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          }
+        },
       ),
     );
   }
 
   Widget _buildStatisticCategory({
-    required id,
+    required String id,
     required String title,
-    required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      color: color,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFFE2E8F0),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    FutureBuilder<String>(
-                      future: fetchDescription(id),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Container(
-                            width: double.infinity,
-                            height: 20.0,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                          );
-                        } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}',
-                              style: const TextStyle(color: Colors.white));
-                        } else {
-                          final data =
-                              snapshot.data ?? 'No description available';
-                          return Text(
-                            data,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      FutureBuilder<String>(
+                        future: fetchDescription(id),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Shimmer.fromColors(
+                              baseColor: Colors.white10,
+                              highlightColor: Colors.white24,
+                              child: Container(
+                                width: 140,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Text(
+                              '-',
+                              style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+                            );
+                          } else {
+                            final data = snapshot.data ?? 'Tidak tersedia';
+                            return Text(
+                              data,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFFD4A843), // Gold accent
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.white),
-            ],
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -180,8 +239,7 @@ class _StrategisState extends State<Strategis> {
 
   Future<String> fetchDescription(String id) async {
     try {
-      final response = await fetchData(
-          'https://webapi.bps.go.id/v1/api/list?domain=3321&model=data&lang=ind&var=$id&th=024&key=b73ea5437eb23fb8309858b840029da2');
+      final response = await fetchData(ApiConfig.dataUrl(varId: id));
       final data = response ?? {};
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];
@@ -202,7 +260,7 @@ class _StrategisState extends State<Strategis> {
       var resTahun = tahun[tahun.length - 1]["label"];
       return '$resValue ($resTahun)';
     } catch (e) {
-      return 'Error: $e';
+      return 'Tidak tersedia';
     }
   }
 }

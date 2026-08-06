@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'package:Dalem/berita/detail_berita.dart';
 import 'package:Dalem/components/bottom_nav.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:html_unescape/html_unescape.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/bar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:Dalem/config/api_config.dart';
 
 class Berita extends StatefulWidget {
   const Berita({super.key});
@@ -47,54 +52,100 @@ class BeritaState extends State<Berita> {
       isLoading = true;
     });
 
-    final url =
-        'https://webapi.bps.go.id/v1/api/list/model/news/lang/ind/domain/3321/page/$currentPage/perpage/10/key/b73ea5437eb23fb8309858b840029da2/';
+    final url = ApiConfig.listUrl(model: 'news', page: currentPage, perpage: 10);
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       final newBerita = jsonResponse['data'][1];
 
-      setState(() {
-        beritaList.addAll(newBerita);
-        currentPage++;
-        isLoading = false;
-        hasMoreData = newBerita.length == 10; // Assuming 10 items per page
-      });
+      if (mounted) {
+        setState(() {
+          beritaList.addAll(newBerita);
+          currentPage++;
+          isLoading = false;
+          hasMoreData = newBerita.length == 10;
+        });
+      }
     } else {
-      setState(() {
-        isLoading = false;
-      });
-      throw Exception('Failed to load data');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar2(
+      backgroundColor: const Color(0xFFF8F9FB),
+      appBar: const AppBar2(
         title: 'Berita Kegiatan BPS',
       ),
-      body: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.all(8.0),
-        child: beritaList.isEmpty && isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : GridView.builder(
-                controller: _scrollController,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.78,
-                ),
-                itemCount: beritaList.length + (hasMoreData ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == beritaList.length) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  var item = beritaList[index];
-                  return Card(
+      body: beritaList.isEmpty && isLoading
+          ? GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.72,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: 6,
+              itemBuilder: (context, index) {
+                return Shimmer.fromColors(
+                  baseColor: Colors.grey.shade200,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                );
+              },
+            )
+          : GridView.builder(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(12.0),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.72,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: beritaList.length + (hasMoreData ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == beritaList.length) {
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey.shade200,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  );
+                }
+                var item = beritaList[index];
+                return Container(
+                  decoration: BoxDecoration(
                     color: Colors.white,
-                    elevation: 5,
-                    shadowColor: Colors.grey,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       onTap: () {
                         Navigator.push(
@@ -105,45 +156,77 @@ class BeritaState extends State<Berita> {
                           ),
                         );
                       },
+                      borderRadius: BorderRadius.circular(16),
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: const EdgeInsets.all(10.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            item['picture'] != null &&
-                                    item['picture'].isNotEmpty
-                                ? Image.network(
-                                    item['picture'],
-                                    width: double.infinity,
-                                    height: 200,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Icon(Icons.error),
-                                  )
-                                : Container(),
-                            const SizedBox(height: 5),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: item['picture'] != null &&
+                                        item['picture'].isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: item['picture'],
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) =>
+                                            Shimmer.fromColors(
+                                          baseColor: Colors.grey.shade200,
+                                          highlightColor: Colors.grey.shade100,
+                                          child: Container(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        errorWidget: (context, url, error) =>
+                                            Container(
+                                          color: Colors.grey.shade100,
+                                          child: const Icon(
+                                              Icons.broken_image_rounded,
+                                              color: Colors.grey),
+                                        ),
+                                      )
+                                    : Container(color: Colors.grey.shade100),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (item['rl_date'] != null)
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 10, color: Color(0xFF64748B)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item['rl_date'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 10,
+                                      color: const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 4),
                             Text(
-                              item['title'] ?? 'No Title',
-                              style: TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w500),
-                              maxLines: 1,
+                              HtmlUnescape().convert(item['title'] ?? 'No Title'),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1E293B),
+                                height: 1.3,
+                              ),
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
-      ),
-      bottomNavigationBar: BottomNav(
-        currentIndex: 0,
-        onTap: (index) {
-          // Handle bottom navigation tap if needed
-        },
-      ),
+                  ),
+                );
+              },
+            ),
+      bottomNavigationBar: const BottomNav(currentIndex: 0),
     );
   }
 }

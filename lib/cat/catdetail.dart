@@ -1,174 +1,147 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/table/table.dart' as Dalem_table;
 import 'package:Dalem/components/offline_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/components/state_widgets.dart';
 
-class Catdetail extends StatelessWidget {
+class Catdetail extends StatefulWidget {
   final String title;
   final int id;
   final String desc;
   final Color color;
-  const Catdetail(
-      {super.key,
-      this.id = 0,
-      required this.title,
-      required this.desc,
-      required this.color});
+
+  const Catdetail({
+    super.key,
+    this.id = 0,
+    required this.title,
+    required this.desc,
+    required this.color,
+  });
+
+  @override
+  State<Catdetail> createState() => _CatdetailState();
+}
+
+class _CatdetailState extends State<Catdetail> {
+  late Future<List<dynamic>> _dataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
+    _dataFuture = fetchData(
+      ApiConfig.listUrl(model: 'tablestatistic', page: 1, perpage: 200) +
+          'subject/${widget.id}/',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar2(
-        title: title,
+        title: widget.title,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              color: color,
-              padding: const EdgeInsets.all(5.0),
-              //   child: Column(
-              //     children: [
-              //       Text(
-              //         desc,
-              //         style: const TextStyle(fontSize: 14, color: Colors.white),
-              //         textAlign: TextAlign.center,
-              //         maxLines: 2,
-              //         overflow: TextOverflow.ellipsis,
-              //       ),
-              //       if (desc.length > 100) // Adjust the length as needed
-              //         TextButton(
-              //           onPressed: () {
-              //             showDialog(
-              //               context: context,
-              //               builder: (context) => AlertDialog(
-              //                 content: Text(desc),
-              //                 actions: [
-              //                   TextButton(
-              //                     onPressed: () => Navigator.pop(context),
-              //                     child: const Text('Tutup'),
-              //                   ),
-              //                 ],
-              //               ),
-              //             );
-              //           },
-              //           child: const Text(
-              //             'Baca selengkapnya',
-              //             style: TextStyle(
-              //               color: Colors.white,
-              //             ),
-              //           ),
-              //         ),
-              //     ],
-              //   ),
-            ),
-            FutureBuilder<List<dynamic>>(
-              future: fetchData(
-                  'https://webapi.bps.go.id/v1/api/list/domain/3321/model/tablestatistic/subject/$id/page/1/perpage/200/key/b73ea5437eb23fb8309858b840029da2/'),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(50.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(120.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/img/server.png',
-                            width: 500,
-                            height: 200,
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'DATA BELUM TERSEDIA',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
+      body: FutureBuilder<List<dynamic>>(
+        future: _dataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: 6,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.grey.shade200,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                  );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No data available'));
-                } else {
-                  // Filter and sort data
-                  var filteredData = snapshot.data!
-                      .where((item) =>
-                          item['last_update'] != null &&
-                          item['last_update'].toString().isNotEmpty)
-                      .toList();
-
-                  filteredData.sort(
-                      (a, b) => b['last_update'].compareTo(a['last_update']));
-
-                  return Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredData.length,
-                          itemBuilder: (context, index) {
-                            var item = filteredData[index];
-                            return _buildStatisticCategory(
-                              icon: Icons.bar_chart_outlined,
-                              title: item['title'],
-                              lastUpdate: item['last_update'],
-                              color: color,
-                              onTap: () {
-                                // var decodedId = utf8.decode(base64.decode(item['id'].toString()));
-                                // var arrayId = decodedId.split('#');
-                                // var id = arrayId[0];
-                                // Navigator.push(
-                                //   context,
-                                //   MaterialPageRoute(
-                                //     builder: (context) =>
-                                //         Dalem_table.DataTableScreen(
-                                //       id: id,
-                                //       title: item['title'],
-                                //     ),
-                                //   ),
-                                // );
-                                var decodedId = utf8.decode(base64.decode(item['id'].toString()));
-                                var arrayId = decodedId.split('#');
-                                var id = arrayId[0];
-                                var tableType = arrayId.length > 1 ? arrayId[1] : '1'; // default '1' (statictable) jika tidak ada
-
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Dalem_table.DataTableScreen(
-                                      id: id,
-                                      title: item['title'],
-                                      tableType: tableType, // tambahkan parameter ini
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                  ),
+                );
               },
-            )
-          ],
-        ),
+            );
+          } else if (snapshot.hasError) {
+            return ErrorStateWidget(
+              title: 'Gagal Memuat Tabel Statistik',
+              message: 'Terjadi masalah saat mengambil data tabel dari server.',
+              onRetry: () {
+                setState(() {
+                  _loadData();
+                });
+              },
+            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const EmptyStateWidget(
+              title: 'Tabel Belum Tersedia',
+              message: 'Belum ada data tabel statistik untuk kategori ini.',
+            );
+          } else {
+            // Filter and sort data
+            var filteredData = snapshot.data!
+                .where((item) =>
+                    item['last_update'] != null &&
+                    item['last_update'].toString().isNotEmpty)
+                .toList();
+
+            filteredData.sort(
+                (a, b) => b['last_update'].compareTo(a['last_update']));
+
+            if (filteredData.isEmpty) {
+              return const EmptyStateWidget(
+                title: 'Tabel Belum Tersedia',
+                message: 'Belum ada data tabel statistik terbarui untuk kategori ini.',
+              );
+            }
+
+            return ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              itemCount: filteredData.length,
+              itemBuilder: (context, index) {
+                var item = filteredData[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildStatisticCategory(
+                    icon: Icons.table_chart_rounded,
+                    title: item['title'],
+                    lastUpdate: item['last_update'],
+                    onTap: () {
+                      var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                      var arrayId = decodedId.split('#');
+                      var id = arrayId[0];
+                      var tableType = arrayId.length > 1 ? arrayId[1] : '1';
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Dalem_table.DataTableScreen(
+                            id: id,
+                            title: item['title'],
+                            tableType: tableType,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          }
+        },
       ),
     );
   }
@@ -177,51 +150,83 @@ class Catdetail extends StatelessWidget {
     required IconData icon,
     required String title,
     required String lastUpdate,
-    required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      color: color, // Set the background color of the Card to blue
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+    const primaryNavy = Color(0xFF002B6A);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Row(
-            children: [
-              Icon(icon,
-                  color: Colors.white, size: 25), // Set the icon color to white
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (lastUpdate.isNotEmpty)
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: primaryNavy, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Terakhir diperbarui pada $lastUpdate', // Add last update information
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                        title,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF1E293B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
                         ),
                       ),
-                  ],
+                      if (lastUpdate.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.history_rounded, size: 12, color: Color(0xFF94A3B8)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Diperbarui: $lastUpdate',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF64748B),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: Colors.white), // Set the chevron icon color to white
-            ],
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Color(0xFF94A3B8),
+                  size: 16,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -233,14 +238,12 @@ class Catdetail extends StatelessWidget {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body)['data'][1];
-        // Save data offline
         await OfflineStorage.saveData(url, jsonResponse);
         return jsonResponse;
       } else {
         throw Exception('Failed to load data');
       }
     } catch (e) {
-      // Load data from offline storage if API call fails
       final offlineData = await OfflineStorage.loadData(url);
       if (offlineData != null) {
         return offlineData as List<dynamic>;

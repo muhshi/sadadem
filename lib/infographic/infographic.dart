@@ -1,11 +1,19 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:Dalem/components/bar.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bar.dart';
+import 'package:Dalem/components/full_screen_image_viewer.dart';
+import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/utils/permission_helper.dart';
 
 class Infographic extends StatefulWidget {
   const Infographic({super.key});
@@ -50,15 +58,19 @@ class InfographicState extends State<Infographic> {
   }
 
   Future<void> _requestPermissionAndLoadFiles() async {
-    if (await _requestPermission(Permission.storage)) {
-      setState(() {
-        _permissionGranted = true;
-      });
+    if (await PermissionHelper.requestStoragePermission()) {
+      if (mounted) {
+        setState(() {
+          _permissionGranted = true;
+        });
+      }
       _downloadedFiles = await _loadDownloadedFiles();
     } else {
-      setState(() {
-        _permissionGranted = false;
-      });
+      if (mounted) {
+        setState(() {
+          _permissionGranted = false;
+        });
+      }
     }
   }
 
@@ -71,10 +83,10 @@ class InfographicState extends State<Infographic> {
         .listSync()
         .where((item) =>
             item.path.endsWith('.jpg') ||
-            item.path.endsWith('.jpg') ||
+            item.path.endsWith('.jpeg') ||
             item.path.endsWith('.png'))
         .map((item) => {
-              'title': item.path.split('/').last.replaceFirst('.jpg', ''),
+              'title': item.path.split('/').last.replaceFirst(RegExp(r'\.[^.]+$'), ''),
               'image': item.path,
             })
         .toList();
@@ -86,138 +98,204 @@ class InfographicState extends State<Infographic> {
       isLoading = true;
     });
 
-    final url =
-        'https://webapi.bps.go.id/v1/api/list/model/infographic/lang/ind/domain/3321/page/$currentPage/perpage/10/key/b73ea5437eb23fb8309858b840029da2/';
+    final url = ApiConfig.listUrl(
+        model: 'infographic', page: currentPage, perpage: 10);
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       final newInfographic = jsonResponse['data'][1];
 
-      setState(() {
-        infographicList.addAll(newInfographic);
-        currentPage++;
-        isLoading = false;
-        hasMoreData = newInfographic.length == 10; // Assuming 10 items per page
-      });
+      if (mounted) {
+        setState(() {
+          infographicList.addAll(newInfographic);
+          currentPage++;
+          isLoading = false;
+          hasMoreData = newInfographic.length == 10;
+        });
+      }
     } else {
-      setState(() {
-        isLoading = false;
-      });
-      throw Exception('Failed to load data');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar2(
+      backgroundColor: AppColors.backgroundScaffold,
+      appBar: const AppBar2(
         title: 'Daftar Infografis',
       ),
-      body: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.all(8.0),
-        child: infographicList.isEmpty && isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : GridView.builder(
-                controller: _scrollController,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.56,
-                ),
-                itemCount: infographicList.length + (hasMoreData ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == infographicList.length) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  var item = infographicList[index];
-                  bool isDownloaded = _downloadedFiles
-                      .any((file) => file['title'] == item['title']);
-                  return Container(
-                    margin: const EdgeInsets.all(4.0),
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
-                          spreadRadius: 2,
-                          blurRadius: 5,
-                          offset: Offset(0, 3), // changes position of shadow
-                        ),
-                      ],
-                      border: Border.all(color: Colors.white),
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          item['title'],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                        SizedBox(height: 8.0),
-                        AspectRatio(
-                          aspectRatio: 1 /
-                              1.414, // Aspect ratio of A4 is approximately 1:1.414
-                          child: GestureDetector(
-                            onTap: () {
-                              var info = item;
-                              _showFullScreenImage(
-                                  context, info['img']!, info['title'], false);
-                            },
-                            child: Image.network(
-                              item['img'],
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 4.0),
-                        if (isDownloaded)
-                          ElevatedButton.icon(
-                            // icon: Icon(Icons.open_in_new, color: Colors.white),
-                            label: Text('Buka',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .blue, // Set the background color to blue
-                            ),
-                            onPressed: () {
-                              var info = _downloadedFiles.firstWhere(
-                                  (file) => file['title'] == item['title']);
-                              _showFullScreenImage(
-                                  context, info['image']!, info['title'], true);
-                            },
-                          )
-                        else
-                          ElevatedButton.icon(
-                            // icon: Icon(Icons.download, color: Colors.white),
-                            label: Text('Unduh',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .blue, // Set the background color to blue
-                            ),
-                            onPressed: () {
-                              _downloadImage(
-                                  context, item['img'], item['title']);
-                            },
-                          ),
-                      ],
+      body: infographicList.isEmpty && isLoading
+          ? _buildShimmerGrid()
+          : GridView.builder(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(12.0),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.58,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: infographicList.length + (hasMoreData ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == infographicList.length) {
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey.shade200,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   );
-                },
-              ),
+                }
+                var item = infographicList[index];
+                bool isDownloaded = _downloadedFiles
+                    .any((file) => file['title'] == item['title']);
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(16.0),
+                    boxShadow: AppColors.cardShadow,
+                    border: Border.all(color: AppColors.borderDefault),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['title'] ?? 'Infografis',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: GestureDetector(
+                              onTap: () {
+                                var info = item;
+                                FullScreenImageViewer.show(
+                                    context, info['img']!, isFile: false);
+                              },
+                              child: CachedNetworkImage(
+                                imageUrl: item['img'],
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) =>
+                                    Shimmer.fromColors(
+                                  baseColor: Colors.grey.shade200,
+                                  highlightColor: Colors.grey.shade100,
+                                  child: Container(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    Container(
+                                  color: Colors.grey.shade100,
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image_rounded,
+                                        color: AppColors.textMuted),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 36,
+                          child: ElevatedButton.icon(
+                            icon: Icon(
+                              isDownloaded
+                                  ? Icons.visibility_rounded
+                                  : Icons.download_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              isDownloaded ? 'Buka' : 'Unduh',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDownloaded
+                                  ? AppColors.primaryLight
+                                  : AppColors.primaryNavy,
+                              padding: EdgeInsets.zero,
+                              elevation: 1,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              if (isDownloaded) {
+                                var info = _downloadedFiles.firstWhere(
+                                    (file) => file['title'] == item['title']);
+                                FullScreenImageViewer.show(
+                                    context, info['image']!, isFile: true);
+                              } else {
+                                _downloadImage(
+                                    context, item['img'], item['title']);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _buildShimmerGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.58,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade200,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Future<void> _downloadImage(
       BuildContext context, String url, String title) async {
-    if (await _requestPermission(Permission.storage)) {
+    if (await PermissionHelper.requestStoragePermission()) {
       setState(() {
         _isDownloading = true;
         _downloadProgress = 0.0;
@@ -243,100 +321,76 @@ class InfographicState extends State<Infographic> {
           },
         );
 
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Download Successful'),
-              content: Text('File saved at: $filePath'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('OK'),
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppColors.accentTeal, size: 26),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Unduhan Berhasil',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            );
-          },
-        );
-        setState(() {
-          _downloadedFiles.add({
-            'title': title,
-            'image': file.path,
+                content: Text(
+                  'File infografis berhasil disimpan di:\n$filePath',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryNavy,
+                    ),
+                    child: Text(
+                      'OK',
+                      style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+          setState(() {
+            _downloadedFiles.add({
+              'title': title,
+              'image': file.path,
+            });
           });
-        });
+        }
       } catch (e) {
-        print(e);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error downloading image: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal mengunduh gambar: $e')),
+          );
+        }
       } finally {
-        setState(() {
-          _isDownloading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isDownloading = false;
+          });
+        }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission denied')),
-      );
-    }
-  }
-
-  Future<bool> _requestPermission(Permission permission) async {
-    if (Platform.isAndroid) {
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      if (androidInfo.version.sdkInt >= 33) {
-        // Android 13+ (Tiramisu)
-        final images = await Permission.photos.request();
-        return images.isGranted;
-      } else {
-        final result = await permission.request();
-        return result == PermissionStatus.granted;
-      }
-    } else {
-      final result = await permission.request();
-      return result == PermissionStatus.granted;
-    }
-  }
-
-  void _showFullScreenImage(
-      BuildContext context, String imagePath, String title, bool isFile) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.all(10),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: InteractiveViewer(
-                  panEnabled: true,
-                  minScale: 0.5,
-                  maxScale: 4.0,
-                  child: isFile
-                      ? Image.file(
-                          File(imagePath),
-                          fit: BoxFit.contain,
-                        )
-                      : Image.network(
-                          imagePath,
-                          fit: BoxFit.contain,
-                        ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: IconButton(
-                  icon: Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ],
-          ),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Izin penyimpanan ditolak')),
         );
-      },
-    );
+      }
+    }
   }
 }

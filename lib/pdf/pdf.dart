@@ -1,7 +1,7 @@
 import 'dart:io';
-
 import 'package:Dalem/components/bar.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 
@@ -21,27 +21,33 @@ class PDFViewerFromUrlState extends State<PDFViewerFromUrl> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar2(
         title: widget.title,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             onPressed: () {
-              _pdfViewerController.jumpToPage(1); // Reset to the first page
+              _pdfViewerController.jumpToPage(1);
             },
           ),
         ],
       ),
       body: SfPdfViewerTheme(
-        data: SfPdfViewerThemeData(
-          backgroundColor: Colors.white,
+        data: const SfPdfViewerThemeData(
+          backgroundColor: Color(0xFFF8F9FB),
         ),
         child: SfPdfViewer.network(
           widget.url,
           controller: _pdfViewerController,
           onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Gagal memuat PDF: ${details.description}')),
+              SnackBar(
+                content: Text(
+                  'Gagal memuat PDF: ${details.description}',
+                  style: GoogleFonts.plusJakartaSans(),
+                ),
+              ),
             );
           },
         ),
@@ -59,33 +65,40 @@ class PDFViewerFromFile extends StatefulWidget {
   @override
   PDFViewerFromFileState createState() => PDFViewerFromFileState();
 }
+
 class PDFViewerFromFileState extends State<PDFViewerFromFile> {
   final PdfViewerController _pdfViewerController = PdfViewerController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar2(
         title: widget.title,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             onPressed: () {
-              _pdfViewerController.jumpToPage(1); // Reset to the first page
+              _pdfViewerController.jumpToPage(1);
             },
           ),
         ],
       ),
       body: SfPdfViewerTheme(
-        data: SfPdfViewerThemeData(
-          backgroundColor: Colors.white,
+        data: const SfPdfViewerThemeData(
+          backgroundColor: Color(0xFFF8F9FB),
         ),
         child: SfPdfViewer.file(
           File(widget.filePath),
           controller: _pdfViewerController,
           onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Gagal memuat PDF: ${details.description}')),
+              SnackBar(
+                content: Text(
+                  'Gagal memuat PDF: ${details.description}',
+                  style: GoogleFonts.plusJakartaSans(),
+                ),
+              ),
             );
           },
         ),

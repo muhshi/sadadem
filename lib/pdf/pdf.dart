@@ -1,27 +1,39 @@
 import 'dart:io';
-import 'package:Dalem/components/bar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 
-class PDFViewerFromUrl extends StatefulWidget {
-  final String url;
-  final String title;
+import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bar.dart';
 
-  const PDFViewerFromUrl({super.key, required this.url, required this.title});
+/// Unified PDF Viewer supporting both remote network URLs and local file paths.
+class PdfViewerPage extends StatefulWidget {
+  final String title;
+  final String? url;
+  final String? filePath;
+
+  const PdfViewerPage({
+    super.key,
+    required this.title,
+    this.url,
+    this.filePath,
+  }) : assert(
+          url != null || filePath != null,
+          'Either url or filePath must be provided to PdfViewerPage',
+        );
 
   @override
-  PDFViewerFromUrlState createState() => PDFViewerFromUrlState();
+  PdfViewerPageState createState() => PdfViewerPageState();
 }
 
-class PDFViewerFromUrlState extends State<PDFViewerFromUrl> {
+class PdfViewerPageState extends State<PdfViewerPage> {
   final PdfViewerController _pdfViewerController = PdfViewerController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: AppColors.backgroundScaffold,
       appBar: AppBar2(
         title: widget.title,
         actions: [
@@ -35,74 +47,50 @@ class PDFViewerFromUrlState extends State<PDFViewerFromUrl> {
       ),
       body: SfPdfViewerTheme(
         data: const SfPdfViewerThemeData(
-          backgroundColor: Color(0xFFF8F9FB),
+          backgroundColor: AppColors.backgroundScaffold,
         ),
-        child: SfPdfViewer.network(
-          widget.url,
-          controller: _pdfViewerController,
-          onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Gagal memuat PDF: ${details.description}',
-                  style: GoogleFonts.plusJakartaSans(),
-                ),
+        child: widget.filePath != null
+            ? SfPdfViewer.file(
+                File(widget.filePath!),
+                controller: _pdfViewerController,
+                onDocumentLoadFailed: _handleLoadFailed,
+              )
+            : SfPdfViewer.network(
+                widget.url!,
+                controller: _pdfViewerController,
+                onDocumentLoadFailed: _handleLoadFailed,
               ),
-            );
-          },
-        ),
       ),
     );
   }
-}
 
-class PDFViewerFromFile extends StatefulWidget {
-  final String filePath;
-  final String title;
-
-  const PDFViewerFromFile({super.key, required this.filePath, required this.title});
-
-  @override
-  PDFViewerFromFileState createState() => PDFViewerFromFileState();
-}
-
-class PDFViewerFromFileState extends State<PDFViewerFromFile> {
-  final PdfViewerController _pdfViewerController = PdfViewerController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar2(
-        title: widget.title,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: () {
-              _pdfViewerController.jumpToPage(1);
-            },
+  void _handleLoadFailed(PdfDocumentLoadFailedDetails details) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal memuat PDF: ${details.description}',
+            style: GoogleFonts.plusJakartaSans(),
           ),
-        ],
-      ),
-      body: SfPdfViewerTheme(
-        data: const SfPdfViewerThemeData(
-          backgroundColor: Color(0xFFF8F9FB),
         ),
-        child: SfPdfViewer.file(
-          File(widget.filePath),
-          controller: _pdfViewerController,
-          onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Gagal memuat PDF: ${details.description}',
-                  style: GoogleFonts.plusJakartaSans(),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
+      );
+    }
   }
+}
+
+/// Backward-compatibility wrappers
+class PDFViewerFromUrl extends PdfViewerPage {
+  const PDFViewerFromUrl({
+    super.key,
+    required String url,
+    required String title,
+  }) : super(title: title, url: url);
+}
+
+class PDFViewerFromFile extends PdfViewerPage {
+  const PDFViewerFromFile({
+    super.key,
+    required String filePath,
+    required String title,
+  }) : super(title: title, filePath: filePath);
 }

@@ -37,14 +37,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.3.0
   flutter_launcher_icons: ^0.14.3
-  rename: ^3.0.2
   flutter_native_splash: ^2.4.4
-  flutter_carousel_widget: ^3.1.0
   carousel_slider: ^5.0.0
   shared_preferences: ^2.5.2
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.1
-  flutter_cached_pdfview: ^0.4.3
   path_provider: ^2.1.5
   dio: ^5.8.0+1
   permission_handler: ^11.4.0
@@ -52,11 +49,10 @@ dependencies:
   open_file: ^3.5.10
   share_plus: ^10.1.4
   path_provider_android: ^2.2.15
-  flutter_pdfview: ^1.4.0
+  syncfusion_flutter_core: ^28.2.9
   syncfusion_flutter_pdfviewer: ^28.2.9
   device_info_plus: ^11.3.0
   csv: ^6.0.0
-  excel: ^4.0.6
   collection: ^1.19.0
   file_picker: ^10.3.8
   file_saver: ^0.3.1

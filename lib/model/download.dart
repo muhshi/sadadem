@@ -14,7 +14,12 @@ import 'package:Dalem/pdf/pdf.dart';
 
 class DownloadedPublicationsPage extends StatefulWidget {
   final bool isBackHome;
-  const DownloadedPublicationsPage({super.key, this.isBackHome = true});
+  final bool showBottomNav;
+  const DownloadedPublicationsPage({
+    super.key,
+    this.isBackHome = true,
+    this.showBottomNav = true,
+  });
 
   @override
   DownloadedPublicationsPageState createState() =>
@@ -369,7 +374,9 @@ class DownloadedPublicationsPageState
               },
             )
           : _buildPermissionDeniedState(),
-      bottomNavigationBar: const BottomNav(currentIndex: 3),
+      bottomNavigationBar: widget.showBottomNav
+          ? const BottomNav(currentIndex: 3)
+          : null,
     );
   }
 

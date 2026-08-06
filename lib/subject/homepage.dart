@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/appbar.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/home_pub.dart';
@@ -19,7 +20,8 @@ import 'package:Dalem/infographic/infographic.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Homepage extends StatefulWidget {
-  const Homepage({super.key});
+  final bool showBottomNav;
+  const Homepage({super.key, this.showBottomNav = true});
 
   @override
   _HomepageState createState() => _HomepageState();
@@ -69,10 +71,10 @@ class _HomepageState extends State<Homepage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: AppColors.backgroundScaffold,
       body: RefreshIndicator(
         onRefresh: fetchHomeListData,
-        color: const Color(0xFF002B6A),
+        color: AppColors.primaryNavy,
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
@@ -85,16 +87,16 @@ class _HomepageState extends State<Homepage> {
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surfaceCard,
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 12,
                             offset: const Offset(0, 3),
                           ),
                         ],
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: AppColors.borderDefault),
                       ),
                       child: Material(
                         color: Colors.transparent,
@@ -332,7 +334,9 @@ class _HomepageState extends State<Homepage> {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 0),
+      bottomNavigationBar: widget.showBottomNav
+          ? const BottomNav(currentIndex: 0)
+          : null,
     );
   }
 

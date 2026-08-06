@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/app_text_styles.dart';
-import 'subject/homepage.dart';
+import 'package:Dalem/main_screen.dart';
 import 'package:Dalem/components/notification_service.dart';
 import 'dart:io';
 
@@ -16,8 +16,12 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) {
+        if (host == 'webapi.bps.go.id' || host.endsWith('.bps.go.id')) {
+          return true;
+        }
+        return false;
+      };
   }
 }
 
@@ -126,7 +130,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const Homepage(),
+      home: const MainScreen(),
     );
   }
 }

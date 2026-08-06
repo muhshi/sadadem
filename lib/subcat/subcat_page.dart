@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Dalem/cat/catdetail.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
 
@@ -21,7 +22,7 @@ class SubCategoryListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: AppColors.backgroundScaffold,
       appBar: AppBar2(
         title: title,
       ),

@@ -16,7 +16,12 @@ import 'package:Dalem/components/state_widgets.dart';
 
 class SearchPage extends StatefulWidget {
   final bool autofocus;
-  const SearchPage({super.key, required this.autofocus});
+  final bool showBottomNav;
+  const SearchPage({
+    super.key,
+    required this.autofocus,
+    this.showBottomNav = true,
+  });
 
   @override
   _SearchPageState createState() => _SearchPageState();
@@ -220,7 +225,9 @@ class _SearchPageState extends State<SearchPage> {
             ],
           ),
         ),
-        bottomNavigationBar: const BottomNav(currentIndex: 1),
+        bottomNavigationBar: widget.showBottomNav
+            ? const BottomNav(currentIndex: 1)
+            : null,
       ),
     );
   }

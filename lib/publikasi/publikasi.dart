@@ -12,7 +12,8 @@ import 'package:Dalem/providers/publication_provider.dart';
 import 'package:Dalem/publikasi/detail_publikasi.dart';
 
 class Publikasi extends StatefulWidget {
-  const Publikasi({super.key});
+  final bool showBottomNav;
+  const Publikasi({super.key, this.showBottomNav = true});
 
   @override
   PublikasiState createState() => PublikasiState();
@@ -71,7 +72,9 @@ class PublikasiState extends State<Publikasi> {
           },
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 2),
+      bottomNavigationBar: widget.showBottomNav
+          ? const BottomNav(currentIndex: 2)
+          : null,
     );
   }
 

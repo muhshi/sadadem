@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/table/table.dart' as Dalem_table;
 import 'package:Dalem/components/offline_storage.dart';
@@ -46,7 +47,7 @@ class _CatdetailState extends State<Catdetail> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: AppColors.backgroundScaffold,
       appBar: AppBar2(
         title: widget.title,
       ),

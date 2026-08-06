@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:Dalem/components/app_colors.dart';
 
 class AppBar2 extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -15,8 +16,8 @@ class AppBar2 extends StatelessWidget implements PreferredSizeWidget {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
-            Color(0xFF002B6A),
-            Color(0xFF1A5FAF),
+            AppColors.primaryNavy,
+            AppColors.primaryLight,
           ],
         ),
         boxShadow: [
@@ -35,7 +36,7 @@ class AppBar2 extends StatelessWidget implements PreferredSizeWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: IconButton(

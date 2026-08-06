@@ -7,6 +7,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/components/offline_storage.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/state_widgets.dart';
 
@@ -58,7 +59,7 @@ class _StrategisState extends State<Strategis> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: AppColors.backgroundScaffold,
       appBar: AppBar2(
         title: widget.title,
       ),

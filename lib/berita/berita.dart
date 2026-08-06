@@ -6,6 +6,7 @@ import 'package:html_unescape/html_unescape.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:Dalem/config/api_config.dart';
@@ -78,7 +79,7 @@ class BeritaState extends State<Berita> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: AppColors.backgroundScaffold,
       appBar: const AppBar2(
         title: 'Berita Kegiatan BPS',
       ),
@@ -132,16 +133,16 @@ class BeritaState extends State<Berita> {
                 var item = beritaList[index];
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surfaceCard,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
                     ],
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppColors.borderDefault),
                   ),
                   child: Material(
                     color: Colors.transparent,

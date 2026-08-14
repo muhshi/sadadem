@@ -603,20 +603,34 @@ class _SearchPageState extends State<SearchPage> {
               spacing: 8,
               runSpacing: 8,
               children: _searchHistory.map((query) {
-                return Chip(
+                return InputChip(
                   backgroundColor: AppColors.surfaceCard,
                   side: const BorderSide(color: AppColors.borderDefault),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  avatar: const Icon(
+                    Icons.history_rounded,
+                    size: 14,
+                    color: AppColors.textMuted,
+                  ),
                   label: Text(
                     query,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
+                      fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  deleteIcon: const Icon(Icons.close_rounded,
-                      size: 14, color: AppColors.textMuted),
+                  deleteIcon: const Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: AppColors.textMuted,
+                  ),
+                  onPressed: () {
+                    _searchController.text = query;
+                    _performSearch(query);
+                  },
                   onDeleted: () => _deleteSearchQuery(query),
                 );
               }).toList(),

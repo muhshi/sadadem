@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/subcat/subcat_page.dart';
 
 class ListDetail516 extends StatelessWidget {
@@ -32,7 +33,7 @@ class ListDetail516 extends StatelessWidget {
     return SubCategoryListPage(
       title: title,
       staticData: staticData,
-      gradientColors: const [Color(0xFF0D9488), Color(0xFF0F766E)],
+      gradientColors: BpsTheme.current().cardGradient3,
       categoryColor: color,
     );
   }

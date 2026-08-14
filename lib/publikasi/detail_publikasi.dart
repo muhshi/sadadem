@@ -35,6 +35,7 @@ class DetailPublikasiState extends State<DetailPublikasi> {
   }
 
   Future<void> _checkIfDownloaded() async {
+    if (kIsWeb) return;
     try {
       final directory = Directory('/storage/emulated/0/Download/Dalem');
       final cleanTitle =

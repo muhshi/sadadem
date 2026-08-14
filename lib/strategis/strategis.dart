@@ -8,6 +8,7 @@ import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/components/offline_storage.dart';
 import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/state_widgets.dart';
 
@@ -146,17 +147,19 @@ class _StrategisState extends State<Strategis> {
     required String title,
     required VoidCallback onTap,
   }) {
+    final gradientColors = BpsTheme.current().cardGradient1;
+
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        gradient: LinearGradient(
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: gradientColors.last.withValues(alpha: 0.22),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -198,7 +201,7 @@ class _StrategisState extends State<Strategis> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(6),
-                                ),
+                                  ),
                               ),
                             );
                           } else if (snapshot.hasError) {
@@ -211,7 +214,7 @@ class _StrategisState extends State<Strategis> {
                             return Text(
                               data,
                               style: GoogleFonts.plusJakartaSans(
-                                color: const Color(0xFFD4A843), // Gold accent
+                                color: AppColors.secondaryGold,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -225,7 +228,7 @@ class _StrategisState extends State<Strategis> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.chevron_right_rounded, color: Colors.white),

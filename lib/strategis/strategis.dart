@@ -241,7 +241,7 @@ class _StrategisState extends State<Strategis> {
   Future<String> fetchDescription(String id) async {
     try {
       final response = await fetchData(ApiConfig.dataUrl(varId: id));
-      final data = response ?? {};
+      final data = response;
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];
       final turvarData = data["turvar"] ?? [];

@@ -82,25 +82,26 @@ class _HomepageState extends State<Homepage> {
               delegate: SliverChildListDelegate(
                 [
                   const CustomAppBar(),
-                  // Search Bar Section
+                  // Search Bar Card
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Container(
+                      height: 54,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceCard,
-                        borderRadius: BorderRadius.circular(14),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 12,
-                            offset: const Offset(0, 3),
+                            color: const Color(0xFF002B6A).withValues(alpha: 0.06),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
                           ),
                         ],
-                        border: Border.all(color: AppColors.borderDefault),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                       ),
                       child: Material(
                         color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         child: InkWell(
                           onTap: () {
                             Navigator.push(
@@ -111,29 +112,48 @@ class _HomepageState extends State<Homepage> {
                                       )),
                             );
                           },
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Row(
                               children: [
-                                const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 22),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.search_rounded,
+                                    color: Color(0xFF002B6A),
+                                    size: 20,
+                                  ),
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'Cari data statistik, publikasi, & berita...',
+                                    'Cari data statistik, publikasi, dll...',
                                     style: GoogleFonts.plusJakartaSans(
                                       color: const Color(0xFF94A3B8),
-                                      fontSize: 14,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.all(6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(Icons.tune_rounded, color: Color(0xFF64748B), size: 16),
+                                  child: Text(
+                                    'Cari',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: const Color(0xFF64748B),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -170,103 +190,103 @@ class _HomepageState extends State<Homepage> {
                     ),
                   ),
 
-                  // Category Cards
+                  // Category Cards (Grid 2x2)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       children: [
-                        // Data Strategis Card
-                        _buildStatisticCategoryCard(
-                          title: 'Data Strategis',
-                          subtitle: 'Indikator utama statistik Kabupaten Demak',
-                          gradientColors: const [Color(0xFF1E293B), Color(0xFF0F172A)],
-                          icon: Icons.insights_rounded,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Strategis(
-                                  title: 'Data Strategis',
-                                  color: Color(0xFF1E293B),
-                                ),
+                        // Row 1: Data Strategis & Demografi
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildGridCategoryCard(
+                                title: 'Data Strategis',
+                                subtitle: 'Indikator Utama',
+                                gradientColors: const [Color(0xFF1E293B), Color(0xFF0F172A)],
+                                icon: Icons.insights_rounded,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const Strategis(
+                                        title: 'Data Strategis',
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        // Static Categories
-                        ...staticData.asMap().entries.map((entry) {
-                          int index = entry.key;
-                          Map<String, dynamic> item = entry.value;
-
-                          List<Color> gradientColors;
-                          Color solidColor;
-                          IconData icon;
-                          String subtitle;
-
-                          if (index % 3 == 0) {
-                            gradientColors = const [Color(0xFF2563EB), Color(0xFF1D4ED8)];
-                            solidColor = Colors.blue.shade600;
-                            icon = Icons.people_alt_rounded;
-                            subtitle = 'Kependudukan, tenaga kerja, pendidikan, & kesehatan';
-                          } else if (index % 3 == 1) {
-                            gradientColors = const [Color(0xFF0D9488), Color(0xFF0F766E)];
-                            solidColor = Colors.orange.shade600;
-                            icon = Icons.forest_rounded;
-                            subtitle = 'Lingkungan hidup, geografi, & indikator multi-domain';
-                          } else {
-                            gradientColors = const [Color(0xFF7C3AED), Color(0xFF6D28D9)];
-                            solidColor = Colors.green.shade600;
-                            icon = Icons.payments_rounded;
-                            subtitle = 'Makroekonomi, neraca, perdagangan, & harga';
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _buildStatisticCategoryCard(
-                              title: item['title'],
-                              subtitle: subtitle,
-                              gradientColors: gradientColors,
-                              icon: icon,
-                              onTap: () {
-                                if (item['subcat_id'] == 514) {
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildGridCategoryCard(
+                                title: 'Demografi & Sosial',
+                                subtitle: '11 Subjek Data',
+                                gradientColors: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                icon: Icons.people_alt_rounded,
+                                onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => ListDetail514(
-                                        id: item['subcat_id'],
-                                        title: item['title'],
-                                        color: solidColor,
+                                        id: 514,
+                                        title: 'Statistik Demografi dan Sosial',
+                                        color: Colors.blue.shade600,
                                       ),
                                     ),
                                   );
-                                } else if (item['subcat_id'] == 515) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ListDetail515(
-                                        id: item['subcat_id'],
-                                        title: item['title'],
-                                        color: solidColor,
-                                      ),
-                                    ),
-                                  );
-                                } else if (item['subcat_id'] == 516) {
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Row 2: Lingkungan Hidup & Ekonomi
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildGridCategoryCard(
+                                title: 'Lingkungan Hidup',
+                                subtitle: '11 Subjek Data',
+                                gradientColors: const [Color(0xFF0D9488), Color(0xFF0F766E)],
+                                icon: Icons.forest_rounded,
+                                onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => ListDetail516(
-                                        id: item['subcat_id'],
-                                        title: item['title'],
-                                        color: solidColor,
+                                        id: 516,
+                                        title: 'Statistik Lingkungan Hidup dan Multi-domain',
+                                        color: Colors.orange.shade600,
                                       ),
                                     ),
                                   );
-                                }
-                              },
+                                },
+                              ),
                             ),
-                          );
-                        }),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildGridCategoryCard(
+                                title: 'Ekonomi',
+                                subtitle: '15 Subjek Data',
+                                gradientColors: const [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+                                icon: Icons.payments_rounded,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ListDetail515(
+                                        id: 515,
+                                        title: 'Statistik Ekonomi',
+                                        color: Colors.green.shade600,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -340,7 +360,7 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Widget _buildStatisticCategoryCard({
+  Widget _buildGridCategoryCard({
     required String title,
     required String subtitle,
     required List<Color> gradientColors,
@@ -348,6 +368,7 @@ class _HomepageState extends State<Homepage> {
     VoidCallback? onTap,
   }) {
     return Container(
+      height: 110,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: gradientColors,
@@ -357,7 +378,7 @@ class _HomepageState extends State<Homepage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.last.withOpacity(0.25),
+            color: gradientColors.last.withOpacity(0.22),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -370,58 +391,66 @@ class _HomepageState extends State<Homepage> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 18.0),
-            child: Row(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white.withOpacity(0.8),
-                        ),
+                      child: Icon(
+                        icon,
+                        size: 20,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                    color: Colors.white,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ],
             ),

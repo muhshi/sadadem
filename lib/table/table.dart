@@ -100,7 +100,7 @@ class DataTableScreenState extends State<DataTableScreen> {
     html +=
         '</tr><tr style="background-color: #002B6A; color: white;">';
 
-    for (var varData in varData) {
+    for (var _ in varData) {
       for (var element in turvarData) {
         html +=
             '<th colspan="${tahun.length}" style="border: 1px solid #1E3A8A; padding: 10px 12px; text-align: center; font-weight: 700;">${element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']}</th>';
@@ -110,7 +110,7 @@ class DataTableScreenState extends State<DataTableScreen> {
     html +=
         '</tr><tr style="background-color: #002B6A; color: white;">';
 
-    for (var varData in varData) {
+    for (var _ in varData) {
       for (var _ in turvarData) {
         for (var element in tahun) {
           html +=
@@ -178,7 +178,7 @@ class DataTableScreenState extends State<DataTableScreen> {
     csvData.add(header1);
 
     List<String> header2 = [data['labelvervar']];
-    for (var varData in varData) {
+    for (var _ in varData) {
       for (var element in turvarData) {
         header2.addAll(List.filled(tahun.length,
             element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']));
@@ -187,7 +187,7 @@ class DataTableScreenState extends State<DataTableScreen> {
     csvData.add(header2);
 
     List<String> header3 = [''];
-    for (var varData in varData) {
+    for (var _ in varData) {
       for (var _ in turvarData) {
         for (var tahun in tahun) {
           header3.add(tahun['label']);

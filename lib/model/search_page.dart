@@ -24,21 +24,36 @@ class SearchPage extends StatefulWidget {
   });
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  State<SearchPage> createState() => _SearchPageState();
 }
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
+  List<Map<String, dynamic>> _recommendedData = [];
   bool _isLoading = false;
+  bool _isLoadingRecommendations = true;
   bool _isSearchError = false;
   Timer? _debounce;
   List<String> _searchHistory = [];
+  String _selectedFilter = 'Semua'; // 'Semua', 'Tabel', 'Publikasi'
+
+  final List<Map<String, dynamic>> _popularTopics = [
+    {'title': 'Inflasi', 'icon': Icons.trending_up_rounded},
+    {'title': 'Kemiskinan', 'icon': Icons.family_restroom_rounded},
+    {'title': 'Jumlah Penduduk', 'icon': Icons.people_rounded},
+    {'title': 'PDRB', 'icon': Icons.account_balance_wallet_rounded},
+    {'title': 'Ketenagakerjaan', 'icon': Icons.work_rounded},
+    {'title': 'Pertanian', 'icon': Icons.agriculture_rounded},
+    {'title': 'Pendidikan', 'icon': Icons.school_rounded},
+    {'title': 'Kesehatan', 'icon': Icons.local_hospital_rounded},
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadSearchHistory();
+    _fetchRecommendations();
   }
 
   @override
@@ -46,6 +61,61 @@ class _SearchPageState extends State<SearchPage> {
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchRecommendations() async {
+    setState(() {
+      _isLoadingRecommendations = true;
+    });
+
+    List<Map<String, dynamic>> recommendations = [];
+
+    try {
+      final pubUrl =
+          'https://webapi.bps.go.id/v1/api/list/model/publication/lang/ind/domain/3321/page/1/perpage/3/key/b73ea5437eb23fb8309858b840029da2/';
+      final tableUrl =
+          'https://webapi.bps.go.id/v1/api/list/model/tablestatistic/lang/ind/domain/3321/page/1/perpage/3/key/b73ea5437eb23fb8309858b840029da2/';
+
+      final responses = await Future.wait([
+        http.get(Uri.parse(pubUrl)),
+        http.get(Uri.parse(tableUrl)),
+      ]);
+
+      // Parse Publications
+      if (responses[0].statusCode == 200) {
+        final data = json.decode(responses[0].body);
+        if (data['data'] != null && data['data'].length > 1) {
+          for (var item in data['data'][1]) {
+            item['type'] = 'publication';
+            recommendations.add(item);
+          }
+        }
+      }
+
+      // Parse Tables
+      if (responses[1].statusCode == 200) {
+        final data = json.decode(responses[1].body);
+        if (data['data'] != null && data['data'].length > 1) {
+          for (var item in data['data'][1]) {
+            item['type'] = 'table';
+            recommendations.add(item);
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _recommendedData = recommendations;
+          _isLoadingRecommendations = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingRecommendations = false;
+        });
+      }
+    }
   }
 
   void _onSearchChanged() {
@@ -104,18 +174,22 @@ class _SearchPageState extends State<SearchPage> {
         }
       }));
 
-      setState(() {
-        _searchResults = results;
-        _isLoading = false;
-        _isSearchError = false;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+          _isSearchError = false;
+        });
+      }
 
       _saveSearchQuery(query);
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _isSearchError = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isSearchError = true;
+        });
+      }
       debugPrint('Error fetching search results: $e');
     }
   }
@@ -135,6 +209,7 @@ class _SearchPageState extends State<SearchPage> {
         _searchHistory = _searchHistory.sublist(0, 10);
       }
       await prefs.setStringList('searchHistory', _searchHistory);
+      setState(() {});
     }
   }
 
@@ -146,6 +221,47 @@ class _SearchPageState extends State<SearchPage> {
     await prefs.setStringList('searchHistory', _searchHistory);
   }
 
+  void _onItemTapped(Map<String, dynamic> item) {
+    bool isTable = item['type'] == 'table';
+    try {
+      if (isTable) {
+        var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+        var arrayId = decodedId.split('#');
+        var id = arrayId[0];
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DataTableScreen(
+              id: id,
+              title: item['title'],
+              tableType: 'table',
+            ),
+          ),
+        );
+      } else if (item['type'] == 'publication') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetailPublikasi(publication: item),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error decoding ID: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> _getFilteredResults() {
+    if (_selectedFilter == 'Tabel') {
+      return _searchResults.where((item) => item['type'] == 'table').toList();
+    } else if (_selectedFilter == 'Publikasi') {
+      return _searchResults
+          .where((item) => item['type'] == 'publication')
+          .toList();
+    }
+    return _searchResults;
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -155,75 +271,168 @@ class _SearchPageState extends State<SearchPage> {
         appBar: const AppBar2(
           title: 'Pencarian Data',
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Styled Search Field
-              Container(
+        body: Column(
+          children: [
+            // Premium Modern Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Container(
+                height: 54,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceCard,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: AppColors.cardShadow,
-                  border: Border.all(color: AppColors.borderDefault),
-                ),
-                child: TextField(
-                  autofocus: widget.autofocus,
-                  controller: _searchController,
-                  onChanged: (value) => _onSearchChanged(),
-                  onSubmitted: (value) => _performSearch(value.trim()),
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF002B6A).withValues(alpha: 0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: _searchController.text.isNotEmpty
+                        ? const Color(0xFF002B6A)
+                        : const Color(0xFFE2E8F0),
+                    width: 1.5,
                   ),
-                  decoration: InputDecoration(
-                    hintText: 'Ketik kata kunci pencarian...',
-                    hintStyle: GoogleFonts.plusJakartaSans(
-                      color: AppColors.textMuted,
-                      fontSize: 14,
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF002B6A),
+                        size: 20,
+                      ),
                     ),
-                    prefixIcon: const Icon(
-                      Icons.search_rounded,
-                      color: AppColors.primaryNavy,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        autofocus: widget.autofocus,
+                        controller: _searchController,
+                        onChanged: (value) {
+                          setState(() {});
+                          _onSearchChanged();
+                        },
+                        onSubmitted: (value) => _performSearch(value.trim()),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF1E293B),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Ketik kata kunci pencarian data...',
+                          hintStyle: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFF94A3B8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                      ),
                     ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.cancel_rounded,
-                              color: AppColors.textMuted,
-                              size: 20,
+                    if (_searchController.text.isNotEmpty) ...[
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF64748B),
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchResults = [];
+                          });
+                        },
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF002B6A), Color(0xFF1A5FAF)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () =>
+                                _performSearch(_searchController.text.trim()),
+                            borderRadius: BorderRadius.circular(10),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: Text(
+                                'Cari',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchResults = [];
-                              });
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            // Filter Chips (When search results exist)
+            if (_searchResults.isNotEmpty)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Semua', _searchResults.length),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        'Tabel',
+                        _searchResults
+                            .where((i) => i['type'] == 'table')
+                            .length,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        'Publikasi',
+                        _searchResults
+                            .where((i) => i['type'] == 'publication')
+                            .length,
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16.0),
 
-              // Search Body Content
-              Expanded(
-                child: _isLoading
-                    ? _buildShimmerLoading()
-                    : _searchResults.isNotEmpty
-                        ? _buildSearchResults()
-                        : _searchController.text.isNotEmpty
-                            ? _buildEmptyResults()
-                            : _buildSearchHistory(),
-              ),
-            ],
-          ),
+            const SizedBox(height: 6),
+
+            // Body Content
+            Expanded(
+              child: _isLoading
+                  ? _buildShimmerLoading()
+                  : _searchResults.isNotEmpty
+                      ? _buildSearchResults()
+                      : _searchController.text.isNotEmpty
+                          ? _buildEmptyResults()
+                          : _buildInitialSuggestions(),
+            ),
+          ],
         ),
         bottomNavigationBar: widget.showBottomNav
             ? const BottomNav(currentIndex: 1)
@@ -232,246 +441,346 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildSearchResults() {
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        var item = _searchResults[index];
-        bool isTable = item['type'] == 'table';
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: AppColors.cardShadow,
-            border: Border.all(color: AppColors.borderDefault),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-            child: InkWell(
-              onTap: () {
-                try {
-                  if (isTable) {
-                    var decodedId =
-                        utf8.decode(base64.decode(item['id'].toString()));
-                    var arrayId = decodedId.split('#');
-                    var id = arrayId[0];
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DataTableScreen(
-                          id: id,
-                          title: item['title'],
-                          tableType: 'table',
-                        ),
-                      ),
-                    );
-                  } else if (item['type'] == 'publication') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            DetailPublikasi(publication: item),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  debugPrint('Error decoding ID: $e');
-                }
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsets.all(14.0),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: (isTable
-                                ? AppColors.primaryNavy
-                                : AppColors.primaryLight)
-                            .withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        isTable
-                            ? Icons.table_chart_rounded
-                            : Icons.menu_book_rounded,
-                        color: isTable
-                            ? AppColors.primaryNavy
-                            : AppColors.primaryLight,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: (isTable
-                                      ? AppColors.primaryNavy
-                                      : AppColors.primaryLight)
-                                  .withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              isTable ? 'Tabel Statistik' : 'Publikasi',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: isTable
-                                    ? AppColors.primaryNavy
-                                    : AppColors.primaryLight,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            item['title'] ?? 'No Title',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                              height: 1.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.textMuted,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
+  Widget _buildFilterChip(String label, int count) {
+    bool isSelected = _selectedFilter == label;
+    return ChoiceChip(
+      label: Text('$label ($count)'),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _selectedFilter = label;
+          });
+        }
       },
+      selectedColor: AppColors.primaryNavy,
+      backgroundColor: AppColors.surfaceCard,
+      labelStyle: GoogleFonts.plusJakartaSans(
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        color: isSelected ? Colors.white : AppColors.textSecondary,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? AppColors.primaryNavy : AppColors.borderDefault,
+        ),
+      ),
     );
   }
 
-  Widget _buildSearchHistory() {
-    if (_searchHistory.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 56,
-              color: AppColors.textMuted.withOpacity(0.6),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Belum Ada Riwayat Pencarian',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+  Widget _buildInitialSuggestions() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. 🔥 Topik Populer
+          Row(
+            children: [
+              const Icon(Icons.local_fire_department_rounded,
+                  color: Color(0xFFF97316), size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'Topik Populer',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _popularTopics.map((topic) {
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    _searchController.text = topic['title'];
+                    _performSearch(topic['title']);
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceCard,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.borderDefault),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(topic['icon'] as IconData,
+                            size: 14, color: AppColors.primaryNavy),
+                        const SizedBox(width: 6),
+                        Text(
+                          topic['title'],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          // 2. 🕒 Riwayat Pencarian (Jika Ada)
+          if (_searchHistory.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.history_rounded,
+                        color: AppColors.primaryNavy, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Pencarian Terakhir',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('searchHistory');
+                    setState(() {
+                      _searchHistory = [];
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(50, 30),
+                  ),
+                  child: Text(
+                    'Hapus Semua',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: AppColors.accentRose,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Ketikkan kata kunci untuk mencari data',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                color: AppColors.textMuted,
-              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _searchHistory.map((query) {
+                return Chip(
+                  backgroundColor: AppColors.surfaceCard,
+                  side: const BorderSide(color: AppColors.borderDefault),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  label: Text(
+                    query,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  deleteIcon: const Icon(Icons.close_rounded,
+                      size: 14, color: AppColors.textMuted),
+                  onDeleted: () => _deleteSearchQuery(query),
+                );
+              }).toList(),
             ),
           ],
+
+          // 3. 💡 Rekomendasi Data Terbaru
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.lightbulb_rounded,
+                  color: Color(0xFFEAB308), size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'Rekomendasi Data Terbaru',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          if (_isLoadingRecommendations)
+            _buildShimmerLoading(itemCount: 4)
+          else if (_recommendedData.isNotEmpty)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _recommendedData.length,
+              itemBuilder: (context, index) {
+                final item = _recommendedData[index];
+                return _buildResultCard(item);
+              },
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderDefault),
+              ),
+              child: Center(
+                child: Text(
+                  'Gunakan kata kunci untuk menemukan data statistik',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    final filtered = _getFilteredResults();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text(
+          'Tidak ada data yang cocok dengan filter "$_selectedFilter"',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
         ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Riwayat Pencarian',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        var item = filtered[index];
+        return _buildResultCard(item);
+      },
+    );
+  }
+
+  Widget _buildResultCard(Map<String, dynamic> item) {
+    bool isTable = item['type'] == 'table';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: AppColors.cardShadow,
+        border: Border.all(color: AppColors.borderDefault),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: () => _onItemTapped(item),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: (isTable
+                            ? AppColors.primaryNavy
+                            : AppColors.primaryLight)
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isTable
+                        ? Icons.table_chart_rounded
+                        : Icons.menu_book_rounded,
+                    color: isTable
+                        ? AppColors.primaryNavy
+                        : AppColors.primaryLight,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (isTable
+                                  ? AppColors.primaryNavy
+                                  : AppColors.primaryLight)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          isTable ? 'Tabel Statistik' : 'Publikasi',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isTable
+                                ? AppColors.primaryNavy
+                                : AppColors.primaryLight,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        item['title'] ?? 'No Title',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textMuted,
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('searchHistory');
-                setState(() {
-                  _searchHistory = [];
-                });
-              },
-              child: Text(
-                'Hapus Semua',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: AppColors.accentRose,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            itemCount: _searchHistory.length,
-            itemBuilder: (context, index) {
-              final query = _searchHistory[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceCard,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderDefault),
-                ),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.history_rounded,
-                    color: AppColors.textSecondary,
-                    size: 20,
-                  ),
-                  title: Text(
-                    query,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.textMuted,
-                      size: 18,
-                    ),
-                    onPressed: () => _deleteSearchQuery(query),
-                  ),
-                  onTap: () {
-                    _searchController.text = query;
-                    _performSearch(query);
-                  },
-                ),
-              );
-            },
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -493,9 +802,12 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildShimmerLoading() {
+  Widget _buildShimmerLoading({int itemCount = 5}) {
     return ListView.builder(
-      itemCount: 5,
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: itemCount,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),

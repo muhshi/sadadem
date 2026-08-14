@@ -10,6 +10,7 @@ import 'package:Dalem/components/bottom_nav.dart';
 import 'package:Dalem/components/state_widgets.dart';
 import 'package:Dalem/providers/publication_provider.dart';
 import 'package:Dalem/publikasi/detail_publikasi.dart';
+import 'package:Dalem/main_screen.dart';
 
 class Publikasi extends StatefulWidget {
   final bool showBottomNav;
@@ -57,24 +58,38 @@ class PublikasiState extends State<Publikasi> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundScaffold,
-      appBar: const AppBar2(
-        title: 'Daftar Publikasi',
-      ),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        color: AppColors.primaryNavy,
-        backgroundColor: Colors.white,
-        child: Consumer<PublicationProvider>(
-          builder: (context, provider, child) {
-            return _buildBody(provider);
-          },
+    return PopScope(
+      canPop: Navigator.canPop(context),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainScreen(initialIndex: 0),
+            ),
+            (route) => false,
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundScaffold,
+        appBar: const AppBar2(
+          title: 'Daftar Publikasi',
         ),
+        body: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.primaryNavy,
+          backgroundColor: Colors.white,
+          child: Consumer<PublicationProvider>(
+            builder: (context, provider, child) {
+              return _buildBody(provider);
+            },
+          ),
+        ),
+        bottomNavigationBar: widget.showBottomNav
+            ? const BottomNav(currentIndex: 2)
+            : null,
       ),
-      bottomNavigationBar: widget.showBottomNav
-          ? const BottomNav(currentIndex: 2)
-          : null,
     );
   }
 

@@ -13,6 +13,7 @@ import 'package:Dalem/publikasi/detail_publikasi.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/state_widgets.dart';
+import 'package:Dalem/main_screen.dart';
 
 class SearchPage extends StatefulWidget {
   final bool autofocus;
@@ -265,7 +266,18 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: Navigator.canPop(context),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainScreen(initialIndex: 0),
+            ),
+            (route) => false,
+          );
+        }
+      },
       child: Scaffold(
         backgroundColor: AppColors.backgroundScaffold,
         appBar: const AppBar2(

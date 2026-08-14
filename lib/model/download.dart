@@ -11,6 +11,7 @@ import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
 import 'package:Dalem/pdf/pdf.dart';
+import 'package:Dalem/main_screen.dart';
 
 class DownloadedPublicationsPage extends StatefulWidget {
   final bool isBackHome;
@@ -148,10 +149,23 @@ class DownloadedPublicationsPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundScaffold,
-      appBar: AppBar2(
-        title: 'File Unduhan',
+    return PopScope(
+      canPop: Navigator.canPop(context),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainScreen(initialIndex: 0),
+            ),
+            (route) => false,
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundScaffold,
+        appBar: AppBar2(
+          title: 'File Unduhan',
         actions: [
           Theme(
             data: Theme.of(context).copyWith(
@@ -377,6 +391,7 @@ class DownloadedPublicationsPageState
       bottomNavigationBar: widget.showBottomNav
           ? const BottomNav(currentIndex: 3)
           : null,
+      ),
     );
   }
 

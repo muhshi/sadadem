@@ -312,7 +312,7 @@ class PublikasiState extends State<Publikasi> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                            Icon(
                               Icons.arrow_forward_rounded,
                               size: 13,
                               color: AppColors.primaryLight,
@@ -333,7 +333,7 @@ class PublikasiState extends State<Publikasi> {
                       color: AppColors.primaryNavy.withValues(alpha: 0.05),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.chevron_right_rounded,
                       color: AppColors.primaryNavy,
                       size: 18,

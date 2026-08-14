@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'package:Dalem/components/bps_theme.dart';
+
 class AppColors {
-  // Brand Colors
-  static const Color primaryNavy = Color(0xFF002B6A);
-  static const Color primaryLight = Color(0xFF1A5FAF);
-  static const Color primaryDark = Color(0xFF001F4E);
-  static const Color secondaryGold = Color(0xFFD4A843);
+  // Brand Colors (Dinamis sesuai kegiatan sensus aktif BPS)
+  static Color get primaryNavy => BpsTheme.current().primary;
+  static Color get primaryLight => BpsTheme.current().primaryLight;
+  static Color get primaryDark => BpsTheme.current().primaryDark;
+  static Color get secondaryGold => BpsTheme.current().secondary;
+  static LinearGradient get primaryGradient => BpsTheme.current().primaryGradient;
 
   // Section Accent Colors
   static const Color accentTeal = Color(0xFF14B8A6); // Infografis
@@ -26,7 +29,7 @@ class AppColors {
   // Shadow
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 12,
           offset: const Offset(0, 3),
         ),
@@ -34,7 +37,7 @@ class AppColors {
 
   static List<BoxShadow> get softShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.06),
+          color: Colors.black.withValues(alpha: 0.06),
           blurRadius: 16,
           offset: const Offset(0, 4),
         ),

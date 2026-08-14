@@ -10,6 +10,7 @@ import 'package:Dalem/components/offline_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:csv/csv.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/config/api_config.dart';
 
 class DataTableScreen extends StatefulWidget {
@@ -72,12 +73,18 @@ class DataTableScreenState extends State<DataTableScreen> {
     }
   }
 
+  String _colorToHex(Color c) =>
+      '#${c.red.toInt().toRadixString(16).padLeft(2, '0')}${c.green.toInt().toRadixString(16).padLeft(2, '0')}${c.blue.toInt().toRadixString(16).padLeft(2, '0')}';
+
   String generateHtmlTable(data) {
+    final headerBg = _colorToHex(AppColors.primaryNavy);
+    final headerBorder = _colorToHex(AppColors.primaryDark);
+
     var html = '''
     <table border="1" style="width: 100%; border-collapse: collapse; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; border: 1px solid #E2E8F0;">
       <thead>
-        <tr style="background-color: #002B6A; color: white;">
-          <th rowspan="3" style="border: 1px solid #1E3A8A; padding: 10px 12px; text-align: center; font-weight: 700;">${data['labelvervar']}</th>
+        <tr style="background-color: $headerBg; color: white;">
+          <th rowspan="3" style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">${data['labelvervar']}</th>
     ''';
     final varData =
         (data["var"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
@@ -95,26 +102,26 @@ class DataTableScreenState extends State<DataTableScreen> {
 
     for (var varData in varData) {
       html +=
-          '<th colspan="${tahun.length * turvarData.length}" style="border: 1px solid #1E3A8A; padding: 10px 12px; text-align: center; font-weight: 700;">${varData['label']}</th>';
+          '<th colspan="${tahun.length * turvarData.length}" style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">${varData['label']}</th>';
     }
     html +=
-        '</tr><tr style="background-color: #002B6A; color: white;">';
+        '</tr><tr style="background-color: $headerBg; color: white;">';
 
     for (var _ in varData) {
       for (var element in turvarData) {
         html +=
-            '<th colspan="${tahun.length}" style="border: 1px solid #1E3A8A; padding: 10px 12px; text-align: center; font-weight: 700;">${element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']}</th>';
+            '<th colspan="${tahun.length}" style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">${element['label'] == 'Tidak Ada' ? 'Tahun' : element['label']}</th>';
       }
     }
 
     html +=
-        '</tr><tr style="background-color: #002B6A; color: white;">';
+        '</tr><tr style="background-color: $headerBg; color: white;">';
 
     for (var _ in varData) {
       for (var _ in turvarData) {
         for (var element in tahun) {
           html +=
-              '<th style="border: 1px solid #1E3A8A; padding: 10px 12px; text-align: center; font-weight: 700;">${element['label']}</th>';
+              '<th style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">${element['label']}</th>';
         }
       }
     }
@@ -383,13 +390,13 @@ class DataTableScreenState extends State<DataTableScreen> {
                     Center(
                       child: Container(
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF002B6A), Color(0xFF1A5FAF)],
+                          gradient: LinearGradient(
+                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF002B6A).withOpacity(0.3),
+                              color: AppColors.primaryNavy.withValues(alpha: 0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),

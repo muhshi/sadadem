@@ -57,7 +57,7 @@ class BottomNav extends StatelessWidget {
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(color: AppColors.primaryNavy, size: 24);
+              return IconThemeData(color: AppColors.primaryNavy, size: 24);
             }
             return const IconThemeData(color: AppColors.textSecondary, size: 24);
           }),

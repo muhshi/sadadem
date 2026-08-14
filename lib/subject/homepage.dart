@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/components/appbar.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/home_pub.dart';
@@ -92,7 +93,7 @@ class _HomepageState extends State<Homepage> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF002B6A).withValues(alpha: 0.06),
+                            color: AppColors.primaryNavy.withValues(alpha: 0.06),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
@@ -120,12 +121,12 @@ class _HomepageState extends State<Homepage> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
+                                    color: AppColors.primaryNavy.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.search_rounded,
-                                    color: Color(0xFF002B6A),
+                                    color: AppColors.primaryNavy,
                                     size: 20,
                                   ),
                                 ),
@@ -172,7 +173,7 @@ class _HomepageState extends State<Homepage> {
                           width: 4,
                           height: 18,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF002B6A),
+                            color: AppColors.primaryNavy,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -202,15 +203,15 @@ class _HomepageState extends State<Homepage> {
                               child: _buildGridCategoryCard(
                                 title: 'Data Strategis',
                                 subtitle: 'Indikator Utama',
-                                gradientColors: const [Color(0xFF1E293B), Color(0xFF0F172A)],
+                                gradientColors: BpsTheme.current().cardGradient1,
                                 icon: Icons.insights_rounded,
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const Strategis(
+                                      builder: (context) => Strategis(
                                         title: 'Data Strategis',
-                                        color: Color(0xFF1E293B),
+                                        color: BpsTheme.current().cardGradient1.first,
                                       ),
                                     ),
                                   );
@@ -222,7 +223,7 @@ class _HomepageState extends State<Homepage> {
                               child: _buildGridCategoryCard(
                                 title: 'Demografi & Sosial',
                                 subtitle: '11 Subjek Data',
-                                gradientColors: const [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                                gradientColors: BpsTheme.current().cardGradient2,
                                 icon: Icons.people_alt_rounded,
                                 onTap: () {
                                   Navigator.push(
@@ -231,7 +232,7 @@ class _HomepageState extends State<Homepage> {
                                       builder: (context) => ListDetail514(
                                         id: 514,
                                         title: 'Statistik Demografi dan Sosial',
-                                        color: Colors.blue.shade600,
+                                        color: BpsTheme.current().cardGradient2.first,
                                       ),
                                     ),
                                   );
@@ -248,7 +249,7 @@ class _HomepageState extends State<Homepage> {
                               child: _buildGridCategoryCard(
                                 title: 'Lingkungan Hidup',
                                 subtitle: '11 Subjek Data',
-                                gradientColors: const [Color(0xFF0D9488), Color(0xFF0F766E)],
+                                gradientColors: BpsTheme.current().cardGradient3,
                                 icon: Icons.forest_rounded,
                                 onTap: () {
                                   Navigator.push(
@@ -257,7 +258,7 @@ class _HomepageState extends State<Homepage> {
                                       builder: (context) => ListDetail516(
                                         id: 516,
                                         title: 'Statistik Lingkungan Hidup dan Multi-domain',
-                                        color: Colors.orange.shade600,
+                                        color: BpsTheme.current().cardGradient3.first,
                                       ),
                                     ),
                                   );
@@ -269,7 +270,7 @@ class _HomepageState extends State<Homepage> {
                               child: _buildGridCategoryCard(
                                 title: 'Ekonomi',
                                 subtitle: '15 Subjek Data',
-                                gradientColors: const [Color(0xFF7C3AED), Color(0xFF6D28D9)],
+                                gradientColors: BpsTheme.current().cardGradient4,
                                 icon: Icons.payments_rounded,
                                 onTap: () {
                                   Navigator.push(
@@ -278,7 +279,7 @@ class _HomepageState extends State<Homepage> {
                                       builder: (context) => ListDetail515(
                                         id: 515,
                                         title: 'Statistik Ekonomi',
-                                        color: Colors.green.shade600,
+                                        color: BpsTheme.current().cardGradient4.first,
                                       ),
                                     ),
                                   );
@@ -378,7 +379,7 @@ class _HomepageState extends State<Homepage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.last.withOpacity(0.22),
+            color: gradientColors.last.withValues(alpha: 0.22),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -402,7 +403,7 @@ class _HomepageState extends State<Homepage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -414,7 +415,7 @@ class _HomepageState extends State<Homepage> {
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -445,7 +446,7 @@ class _HomepageState extends State<Homepage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

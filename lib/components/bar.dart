@@ -20,7 +20,7 @@ class AppBar2 extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -29,7 +29,7 @@ class AppBar2 extends StatelessWidget implements PreferredSizeWidget {
             AppColors.primaryLight,
           ],
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Color(0x1F000000),
             blurRadius: 8,

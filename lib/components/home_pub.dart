@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/publikasi/detail_publikasi.dart';
 
 class HomePublication extends StatelessWidget {
@@ -18,7 +19,7 @@ class HomePublication extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryNavy = Color(0xFF002B6A);
+    final primaryNavy = AppColors.primaryNavy;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -27,7 +28,7 @@ class HomePublication extends StatelessWidget {
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -81,7 +82,7 @@ class HomePublication extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
+                      Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
                     ],
                   ),
                 ),

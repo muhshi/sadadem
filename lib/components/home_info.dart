@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/full_screen_image_viewer.dart';
 import 'package:Dalem/components/state_widgets.dart';
 
@@ -49,7 +50,7 @@ class HomeInfoState extends State<HomeInfo> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryNavy = Color(0xFF002B6A);
+    final primaryNavy = AppColors.primaryNavy;
 
     return FutureBuilder<List<dynamic>>(
       future: futureBerita,
@@ -94,7 +95,7 @@ class HomeInfoState extends State<HomeInfo> {
               borderRadius: BorderRadius.circular(16.0),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -148,7 +149,7 @@ class HomeInfoState extends State<HomeInfo> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
+                            Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
                           ],
                         ),
                       ),

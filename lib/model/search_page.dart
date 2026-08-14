@@ -295,14 +295,14 @@ class _SearchPageState extends State<SearchPage> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF002B6A).withValues(alpha: 0.06),
+                      color: AppColors.primaryNavy.withValues(alpha: 0.06),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
                   ],
                   border: Border.all(
                     color: _searchController.text.isNotEmpty
-                        ? const Color(0xFF002B6A)
+                        ? AppColors.primaryNavy
                         : const Color(0xFFE2E8F0),
                     width: 1.5,
                   ),
@@ -313,12 +313,12 @@ class _SearchPageState extends State<SearchPage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: AppColors.primaryNavy.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.search_rounded,
-                        color: Color(0xFF002B6A),
+                        color: AppColors.primaryNavy,
                         size: 20,
                       ),
                     ),
@@ -369,8 +369,8 @@ class _SearchPageState extends State<SearchPage> {
                       Container(
                         margin: const EdgeInsets.only(right: 6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF002B6A), Color(0xFF1A5FAF)],
+                          gradient: LinearGradient(
+                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -562,7 +562,7 @@ class _SearchPageState extends State<SearchPage> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.history_rounded,
+                    Icon(Icons.history_rounded,
                         color: AppColors.primaryNavy, size: 18),
                     const SizedBox(width: 6),
                     Text(

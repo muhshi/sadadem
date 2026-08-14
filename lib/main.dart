@@ -71,7 +71,6 @@ class MyApp extends StatelessWidget {
           primary: AppColors.primaryNavy,
           secondary: AppColors.secondaryGold,
           surface: AppColors.surfaceCard,
-          background: AppColors.backgroundScaffold,
         ),
         textTheme: textTheme,
         appBarTheme: AppBarTheme(
@@ -88,7 +87,7 @@ class MyApp extends StatelessWidget {
         cardTheme: CardThemeData(
           color: AppColors.surfaceCard,
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.06),
+          shadowColor: Colors.black.withValues(alpha: 0.06),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -122,7 +121,7 @@ class MyApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+            borderSide: BorderSide(color: AppColors.primaryLight, width: 1.5),
           ),
           hintStyle: GoogleFonts.plusJakartaSans(
             color: AppColors.textSecondary,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/components/offline_storage.dart';
 import 'package:Dalem/config/api_config.dart';
@@ -39,21 +40,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return SizedBox(
       width: double.infinity,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF001F4E),
-              Color(0xFF002B6A),
-              Color(0xFF1A5FAF),
+              AppColors.primaryDark,
+              AppColors.primaryNavy,
+              AppColors.primaryLight,
             ],
           ),
-          borderRadius: BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(24),
             bottomRight: Radius.circular(24),
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Color(0x29000000),
               blurRadius: 16,
@@ -99,7 +100,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       Text(
                         'INDIKATOR STRATEGIS KABUPATEN DEMAK',
                         style: GoogleFonts.plusJakartaSans(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.0,
@@ -125,12 +126,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         itemCount: 3,
                         itemBuilder: (context, index, realIndex) {
                           return Shimmer.fromColors(
-                            baseColor: Colors.white.withOpacity(0.1),
-                            highlightColor: Colors.white.withOpacity(0.25),
+                            baseColor: Colors.white.withValues(alpha: 0.1),
+                            highlightColor: Colors.white.withValues(alpha: 0.25),
                             child: Container(
                               margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
@@ -210,7 +211,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -268,7 +269,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         data,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFF002B6A),
+                          color: AppColors.primaryNavy,
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                         ),
@@ -287,7 +288,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Future<String> fetchDescription(String id) async {
     try {
       final response = await fetchData(ApiConfig.dataUrl(varId: id));
-      final data = response ?? {};
+      final data = response;
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];
       final turvarData = data["turvar"] ?? [];

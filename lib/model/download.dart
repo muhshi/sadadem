@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -69,6 +70,8 @@ class DownloadedPublicationsPageState
   }
 
   Future<bool> _requestPermission(Permission permission) async {
+    // Di web, permission storage tidak diperlukan
+    if (kIsWeb) return true;
     if (Platform.isAndroid) {
       final deviceInfo = DeviceInfoPlugin();
       final androidInfo = await deviceInfo.androidInfo;
@@ -86,6 +89,8 @@ class DownloadedPublicationsPageState
   }
 
   Future<List<Map<String, String>>> _loadDownloadedFiles() async {
+    // Di web, filesystem lokal tidak tersedia
+    if (kIsWeb) return [];
     final directory = Directory('/storage/emulated/0/Download/Dalem');
     if (!await directory.exists()) {
       return [];
@@ -249,7 +254,8 @@ class DownloadedPublicationsPageState
                                 final deviceInfo = DeviceInfoPlugin();
                                 final androidInfo =
                                     await deviceInfo.androidInfo;
-                                if (Platform.isAndroid &&
+                                if (!kIsWeb &&
+                                    Platform.isAndroid &&
                                     androidInfo.version.sdkInt >= 33 &&
                                     !_permissionGranted) {
                                   _pickPdfFile();
@@ -341,7 +347,7 @@ class DownloadedPublicationsPageState
                                         value: 'open_with',
                                         child: Row(
                                           children: [
-                                            const Icon(Icons.open_in_new_rounded,
+                                            Icon(Icons.open_in_new_rounded,
                                                 size: 18, color: AppColors.primaryNavy),
                                             const SizedBox(width: 8),
                                             Text('Buka dengan',
@@ -400,7 +406,7 @@ class DownloadedPublicationsPageState
       return Container(
         width: 55,
         height: 55,
-        color: AppColors.accentRose.withOpacity(0.1),
+        color: AppColors.accentRose.withValues(alpha: 0.1),
         child: const Icon(Icons.picture_as_pdf_rounded,
             size: 28, color: AppColors.accentRose),
       );
@@ -408,7 +414,7 @@ class DownloadedPublicationsPageState
       return Container(
         width: 55,
         height: 55,
-        color: Colors.green.withOpacity(0.1),
+        color: Colors.green.withValues(alpha: 0.1),
         child: const Icon(Icons.table_view_rounded,
             size: 28, color: Colors.green),
       );
@@ -416,7 +422,7 @@ class DownloadedPublicationsPageState
       return Container(
         width: 55,
         height: 55,
-        color: AppColors.accentTeal.withOpacity(0.1),
+        color: AppColors.accentTeal.withValues(alpha: 0.1),
         child: const Icon(Icons.image_rounded,
             size: 28, color: AppColors.accentTeal),
       );
@@ -458,10 +464,10 @@ class DownloadedPublicationsPageState
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.primaryNavy.withOpacity(0.08),
+              color: AppColors.primaryNavy.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.cloud_download_rounded,
               size: 64,
               color: AppColors.primaryNavy,

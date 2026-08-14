@@ -1,4 +1,5 @@
 import 'package:Dalem/pdf/pdf.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -56,8 +57,8 @@ class DetailPublikasiState extends State<DetailPublikasi> {
 
   Future<void> _savePdfWithFileSaver(
       BuildContext context, String url, String title) async {
-    // Cek izin penyimpanan
-    if (Platform.isAndroid) {
+    // Cek izin penyimpanan (skip di web)
+    if (!kIsWeb && Platform.isAndroid) {
       final deviceInfo = DeviceInfoPlugin();
       final androidInfo = await deviceInfo.androidInfo;
       if (androidInfo.version.sdkInt < 33) {

@@ -120,6 +120,15 @@ class InfographicState extends State<Infographic> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    setState(() {
+      currentPage = 1;
+      infographicList = [];
+      hasMoreData = true;
+    });
+    await fetchInfographic();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,18 +136,23 @@ class InfographicState extends State<Infographic> {
       appBar: const AppBar2(
         title: 'Daftar Infografis',
       ),
-      body: infographicList.isEmpty && isLoading
-          ? _buildShimmerGrid()
-          : GridView.builder(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(12.0),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.58,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: AppColors.primaryNavy,
+        backgroundColor: Colors.white,
+        child: infographicList.isEmpty && isLoading
+            ? _buildShimmerGrid()
+            : GridView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics()),
+                padding: const EdgeInsets.all(12.0),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.58,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
               itemCount: infographicList.length + (hasMoreData ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == infographicList.length) {
@@ -262,6 +276,7 @@ class InfographicState extends State<Infographic> {
                 );
               },
             ),
+      ),
     );
   }
 

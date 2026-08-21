@@ -432,7 +432,7 @@ class DataTableScreenState extends State<DataTableScreen> {
                             'https://ppid.bps.go.id/app/konten/3321/Profil-BPS.html?_gl=1*9iomf9*_ga*ODk0Njg5NDUyLjE3MzMzNjI0NDI.*_ga_XXTTVXWHDB*MTc0MDM2MTk3My40My4xLjE3NDAzNjIyODcuMC4wLjA.'));
                       },
                       child: Text(
-                        'Hak Cipta © 2025 Badan Pusat Statistik Kabupaten Demak',
+                        'Hak Cipta © ${DateTime.now().year} Badan Pusat Statistik Kabupaten Demak',
                         style: GoogleFonts.plusJakartaSans(
                           color: const Color(0xFF64748B),
                           fontSize: 12,

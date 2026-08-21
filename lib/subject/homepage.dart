@@ -6,37 +6,38 @@ import 'package:Dalem/subcat/ekonomi.dart';
 import 'package:Dalem/subcat/lingkungan.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:Dalem/components/app_colors.dart';
-import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/components/appbar.dart';
-import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/components/bottom_nav.dart';
+import 'package:Dalem/components/home_ber.dart';
+import 'package:Dalem/components/home_info.dart';
 import 'package:Dalem/components/home_pub.dart';
+import 'package:Dalem/infographic/infographic.dart';
 import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
+import 'package:Dalem/berita/berita.dart';
 import 'package:Dalem/strategis/strategis.dart';
 import 'package:Dalem/subcat/demografi.dart';
-import 'package:Dalem/infographic/infographic.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:Dalem/subcat/lingkungan.dart';
+import 'package:Dalem/subcat/ekonomi.dart';
+import 'package:Dalem/components/bps_theme.dart';
+import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/services/bps_api_service.dart';
+import 'package:Dalem/utils/page_transitions.dart';
 
 class Homepage extends StatefulWidget {
   final bool showBottomNav;
   const Homepage({super.key, this.showBottomNav = true});
 
   @override
-  _HomepageState createState() => _HomepageState();
+  State<Homepage> createState() => _HomepageState();
 }
 
 class _HomepageState extends State<Homepage> {
-  final List<Map<String, dynamic>> staticData = const [
-    {"subcat_id": 514, "title": "Statistik Demografi dan Sosial"},
-    {"subcat_id": 516, "title": "Statistik Lingkungan Hidup dan Multi-domain"},
-    {"subcat_id": 515, "title": "Statistik Ekonomi"}
-  ];
-
   List<Map<String, dynamic>> homeListData = [];
-  bool isLoadingHomeData = false;
+  bool isLoadingHomeData = true;
+  int _refreshKey = 0;
 
   @override
   void initState() {
@@ -49,24 +50,25 @@ class _HomepageState extends State<Homepage> {
       isLoadingHomeData = true;
     });
     try {
-      final response = await http.get(Uri.parse(
-          ApiConfig.listUrl(model: 'publication', perpage: 4)));
+      final list = await BpsApiService.fetchDataList(
+          ApiConfig.listUrl(model: 'publication', perpage: 4));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (mounted) {
-          setState(() {
-            homeListData =
-                List<Map<String, dynamic>>.from(data['data'][1]).take(1).toList();
-            isLoadingHomeData = false;
-          });
-        }
-      } else {
-        if (mounted) setState(() => isLoadingHomeData = false);
+      if (mounted) {
+        setState(() {
+          homeListData = list.take(1).map((e) => Map<String, dynamic>.from(e)).toList();
+          isLoadingHomeData = false;
+        });
       }
     } catch (e) {
       if (mounted) setState(() => isLoadingHomeData = false);
     }
+  }
+
+  Future<void> _handleFullRefresh() async {
+    setState(() {
+      _refreshKey++;
+    });
+    await fetchHomeListData();
   }
 
   @override
@@ -74,15 +76,17 @@ class _HomepageState extends State<Homepage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundScaffold,
       body: RefreshIndicator(
-        onRefresh: fetchHomeListData,
+        onRefresh: _handleFullRefresh,
         color: AppColors.primaryNavy,
+        backgroundColor: Colors.white,
         child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
           slivers: [
             SliverList(
               delegate: SliverChildListDelegate(
                 [
-                  const CustomAppBar(),
+                  CustomAppBar(key: ValueKey('appbar_$_refreshKey')),
                   // Search Bar Card
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -107,10 +111,9 @@ class _HomepageState extends State<Homepage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) => const SearchPage(
-                                        autofocus: true,
-                                      )),
+                              SmoothPageRoute(
+                                child: const SearchPage(autofocus: true),
+                              ),
                             );
                           },
                           borderRadius: BorderRadius.circular(16),
@@ -208,8 +211,8 @@ class _HomepageState extends State<Homepage> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => Strategis(
+                                    SmoothPageRoute(
+                                      child: Strategis(
                                         title: 'Data Strategis',
                                         color: BpsTheme.current().cardGradient1.first,
                                       ),
@@ -228,8 +231,8 @@ class _HomepageState extends State<Homepage> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ListDetail514(
+                                    SmoothPageRoute(
+                                      child: ListDetail514(
                                         id: 514,
                                         title: 'Statistik Demografi dan Sosial',
                                         color: BpsTheme.current().cardGradient2.first,
@@ -254,8 +257,8 @@ class _HomepageState extends State<Homepage> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ListDetail516(
+                                    SmoothPageRoute(
+                                      child: ListDetail516(
                                         id: 516,
                                         title: 'Statistik Lingkungan Hidup dan Multi-domain',
                                         color: BpsTheme.current().cardGradient3.first,
@@ -275,8 +278,8 @@ class _HomepageState extends State<Homepage> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ListDetail515(
+                                    SmoothPageRoute(
+                                      child: ListDetail515(
                                         id: 515,
                                         title: 'Statistik Ekonomi',
                                         color: BpsTheme.current().cardGradient4.first,
@@ -299,32 +302,34 @@ class _HomepageState extends State<Homepage> {
                     onSeeAll: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const Publikasi(),
+                        SmoothPageRoute(
+                          child: const Publikasi(),
                         ),
                       );
                     },
                   ),
                   const SizedBox(height: 16),
                   HomeInfo(
+                    key: ValueKey('info_$_refreshKey'),
                     title: 'Informasi Terbaru',
                     onSeeAll: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const Infographic(),
+                        SmoothPageRoute(
+                          child: const Infographic(),
                         ),
                       );
                     },
                   ),
                   const SizedBox(height: 16),
                   Homeberita(
+                    key: ValueKey('berita_$_refreshKey'),
                     title: 'Berita Kegiatan BPS',
                     onSeeAll: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const Berita(),
+                        SmoothPageRoute(
+                          child: const Berita(),
                         ),
                       );
                     },
@@ -339,7 +344,7 @@ class _HomepageState extends State<Homepage> {
                               'https://ppid.bps.go.id/app/konten/3321/Profil-BPS.html?_gl=1*9iomf9*_ga*ODk0Njg5NDUyLjE3MzMzNjI0NDI.*_ga_XXTTVXWHDB*MTc0MDM2MTk3My40My4xLjE3NDAzNjIyODcuMC4wLjA.'));
                         },
                         child: Text(
-                          'Hak Cipta © 2025 Badan Pusat Statistik Kabupaten Demak',
+                          'Hak Cipta © ${DateTime.now().year} Badan Pusat Statistik Kabupaten Demak',
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFF64748B),
                             fontSize: 12,

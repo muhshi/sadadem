@@ -15,6 +15,8 @@ import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
 import 'package:Dalem/config/api_config.dart';
 
+import 'package:Dalem/services/bps_api_service.dart';
+
 class DetailBerita extends StatefulWidget {
   final String newsId;
 
@@ -30,17 +32,26 @@ class _DetailBeritaState extends State<DetailBerita> {
   @override
   void initState() {
     super.initState();
+    _loadNews();
+  }
+
+  void _loadNews() {
     futureNews = fetchDetailBerita(widget.newsId);
   }
 
   Future<Map<String, dynamic>> fetchDetailBerita(String newsId) async {
     final detailUrl = ApiConfig.viewUrl(model: 'news', id: newsId);
-    final detailResponse = await http.get(Uri.parse(detailUrl));
-    if (detailResponse.statusCode == 200) {
-      return json.decode(detailResponse.body)['data'];
-    } else {
-      throw Exception('Gagal memuat detail berita');
+    final response = await BpsApiService.fetchJson(detailUrl);
+    if (response['data'] != null && response['data'] is Map<String, dynamic>) {
+      return response['data'] as Map<String, dynamic>;
     }
+    return response;
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _loadNews();
+    });
   }
 
   @override
@@ -50,9 +61,13 @@ class _DetailBeritaState extends State<DetailBerita> {
       appBar: const AppBar2(
         title: 'Detail Berita',
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: futureNews,
-        builder: (context, snapshot) {
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: AppColors.primaryNavy,
+        backgroundColor: Colors.white,
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: futureNews,
+          builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildShimmerLoading();
           } else if (snapshot.hasError) {
@@ -328,7 +343,8 @@ class _DetailBeritaState extends State<DetailBerita> {
           }
         },
       ),
-      floatingActionButton: FutureBuilder<Map<String, dynamic>>(
+    ),
+    floatingActionButton: FutureBuilder<Map<String, dynamic>>(
         future: futureNews,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done &&

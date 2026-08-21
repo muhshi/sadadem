@@ -1,36 +1,14 @@
 import 'dart:convert';
-import 'dart:async';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/table/table.dart';
-import 'package:Dalem/components/offline_storage.dart';
 import 'package:Dalem/config/api_config.dart';
-
-Future<Map<String, dynamic>> fetchData(String url) async {
-  try {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      // Save data offline
-      await OfflineStorage.saveData(url, jsonResponse);
-      return jsonResponse;
-    } else {
-      throw Exception('Failed to load data');
-    }
-  } catch (e) {
-    // Load data from offline storage if API call fails
-    final offlineData = await OfflineStorage.loadData(url);
-    if (offlineData != null) {
-      return offlineData;
-    } else {
-      throw Exception('Failed to load data and no offline data available');
-    }
-  }
-}
+import 'package:Dalem/services/bps_api_service.dart';
+import 'package:Dalem/about/about_page.dart';
+import 'package:Dalem/utils/page_transitions.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({super.key});
@@ -64,23 +42,56 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.only(top: 16, bottom: 20),
+            padding: const EdgeInsets.only(top: 12, bottom: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Center(
-                  child: Image.asset(
-                    'assets/img/homei.png',
-                    height: 55,
-                    errorBuilder: (context, error, stackTrace) => Text(
-                      'BPS KABUPATEN DEMAK',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Center(
+                        child: Image.asset(
+                          'assets/img/homei.png',
+                          height: 50,
+                          errorBuilder: (context, error, stackTrace) => Text(
+                            'BPS KABUPATEN DEMAK',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                            tooltip: 'Tentang Aplikasi',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                SmoothPageRoute(
+                                  child: const AboutPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -111,7 +122,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
                 const SizedBox(height: 10),
                 FutureBuilder<dynamic>(
-                  future: fetchData(
+                  future: BpsApiService.fetchJson(
                       ApiConfig.listUrl(model: 'tablestatistic', keyword: 'strategis')),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -287,7 +298,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   Future<String> fetchDescription(String id) async {
     try {
-      final response = await fetchData(ApiConfig.dataUrl(varId: id));
+      final response =
+          await BpsApiService.fetchJson(ApiConfig.dataUrl(varId: id));
       final data = response;
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];

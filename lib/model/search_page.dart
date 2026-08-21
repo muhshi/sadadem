@@ -123,7 +123,7 @@ class _SearchPageState extends State<SearchPage> {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       if (_searchController.text.trim().isNotEmpty) {
-        _performSearch(_searchController.text.trim());
+        _performSearch(_searchController.text.trim(), saveToHistory: false);
       } else {
         setState(() {
           _searchResults = [];
@@ -134,8 +134,9 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  Future<void> _performSearch(String query) async {
-    if (query.isEmpty) return;
+  Future<void> _performSearch(String query, {bool saveToHistory = false}) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) return;
 
     setState(() {
       _isLoading = true;
@@ -144,11 +145,11 @@ class _SearchPageState extends State<SearchPage> {
 
     final urls = [
       {
-        'url': ApiConfig.listUrl(model: 'tablestatistic', keyword: query),
+        'url': ApiConfig.listUrl(model: 'tablestatistic', keyword: trimmedQuery),
         'type': 'table'
       },
       {
-        'url': ApiConfig.listUrl(model: 'publication', keyword: query),
+        'url': ApiConfig.listUrl(model: 'publication', keyword: trimmedQuery),
         'type': 'publication'
       },
     ];
@@ -166,7 +167,7 @@ class _SearchPageState extends State<SearchPage> {
                   item['title']
                       .toString()
                       .toLowerCase()
-                      .contains(query.toLowerCase())) {
+                      .contains(trimmedQuery.toLowerCase())) {
                 item['type'] = urlData['type'];
                 results.add(item);
               }
@@ -183,7 +184,9 @@ class _SearchPageState extends State<SearchPage> {
         });
       }
 
-      _saveSearchQuery(query);
+      if (saveToHistory) {
+        _saveSearchQuery(trimmedQuery);
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -203,15 +206,19 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _saveSearchQuery(String query) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty || cleanQuery.length < 2) return;
+
     final prefs = await SharedPreferences.getInstance();
-    if (!_searchHistory.contains(query)) {
-      _searchHistory.insert(0, query);
+    setState(() {
+      _searchHistory.removeWhere(
+          (item) => item.toLowerCase() == cleanQuery.toLowerCase());
+      _searchHistory.insert(0, cleanQuery);
       if (_searchHistory.length > 10) {
         _searchHistory = _searchHistory.sublist(0, 10);
       }
-      await prefs.setStringList('searchHistory', _searchHistory);
-      setState(() {});
-    }
+    });
+    await prefs.setStringList('searchHistory', _searchHistory);
   }
 
   Future<void> _deleteSearchQuery(String query) async {
@@ -223,6 +230,9 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onItemTapped(Map<String, dynamic> item) {
+    if (_searchController.text.trim().isNotEmpty) {
+      _saveSearchQuery(_searchController.text.trim());
+    }
     bool isTable = item['type'] == 'table';
     try {
       if (isTable) {
@@ -331,7 +341,8 @@ class _SearchPageState extends State<SearchPage> {
                           setState(() {});
                           _onSearchChanged();
                         },
-                        onSubmitted: (value) => _performSearch(value.trim()),
+                        onSubmitted: (value) =>
+                            _performSearch(value.trim(), saveToHistory: true),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -377,8 +388,9 @@ class _SearchPageState extends State<SearchPage> {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () =>
-                                _performSearch(_searchController.text.trim()),
+                            onTap: () => _performSearch(
+                                _searchController.text.trim(),
+                                saveToHistory: true),
                             borderRadius: BorderRadius.circular(10),
                             child: const Padding(
                               padding: EdgeInsets.symmetric(
@@ -514,7 +526,7 @@ class _SearchPageState extends State<SearchPage> {
                 child: InkWell(
                   onTap: () {
                     _searchController.text = topic['title'];
-                    _performSearch(topic['title']);
+                    _performSearch(topic['title'], saveToHistory: true);
                   },
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
@@ -629,7 +641,7 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                   onPressed: () {
                     _searchController.text = query;
-                    _performSearch(query);
+                    _performSearch(query, saveToHistory: true);
                   },
                   onDeleted: () => _deleteSearchQuery(query),
                 );

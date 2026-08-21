@@ -4,6 +4,7 @@ import 'package:Dalem/cat/catdetail.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
+import 'package:Dalem/utils/page_transitions.dart';
 
 class SubCategoryListPage extends StatelessWidget {
   final String title;
@@ -42,8 +43,8 @@ class SubCategoryListPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => Catdetail(
+                  SmoothPageRoute(
+                    child: Catdetail(
                       id: item['sub_id'],
                       title: item['title'],
                       color: categoryColor,

@@ -1,36 +1,15 @@
 import 'dart:convert';
-import 'dart:async';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/table/table.dart';
-import 'package:Dalem/components/offline_storage.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/state_widgets.dart';
-
-Future<Map<String, dynamic>> fetchData(String url) async {
-  try {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      await OfflineStorage.saveData(url, jsonResponse);
-      return jsonResponse;
-    } else {
-      throw Exception('Failed to load data');
-    }
-  } catch (e) {
-    final offlineData = await OfflineStorage.loadData(url);
-    if (offlineData != null) {
-      return offlineData;
-    } else {
-      throw Exception('Failed to load data and no offline data available');
-    }
-  }
-}
+import 'package:Dalem/services/bps_api_service.dart';
+import 'package:Dalem/utils/page_transitions.dart';
 
 class Strategis extends StatefulWidget {
   final String title;
@@ -52,9 +31,15 @@ class _StrategisState extends State<Strategis> {
   }
 
   void _loadData() {
-    _dataFuture = fetchData(
+    _dataFuture = BpsApiService.fetchJson(
       ApiConfig.listUrl(model: 'tablestatistic', keyword: 'strategis'),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _loadData();
+    });
   }
 
   @override
@@ -64,80 +49,98 @@ class _StrategisState extends State<Strategis> {
       appBar: AppBar2(
         title: widget.title,
       ),
-      body: FutureBuilder<dynamic>(
-        future: _dataFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          } else if (snapshot.hasError) {
-            return ErrorStateWidget(
-              title: 'Gagal Memuat Indikator Strategis',
-              message: 'Tidak dapat mengambil data indikator strategis dari server.',
-              onRetry: () {
-                setState(() {
-                  _loadData();
-                });
-              },
-            );
-          } else if (!snapshot.hasData || snapshot.data!['data'] == null || snapshot.data!['data'][1] == null) {
-            return const EmptyStateWidget(
-              title: 'Data Strategis Kosong',
-              message: 'Belum ada indikator strategis yang tersedia.',
-            );
-          } else {
-            final items = snapshot.data!['data'][1] as List<dynamic>;
-            return ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                var item = items[index];
-                var decodedId = utf8.decode(base64.decode(item['id'].toString()));
-                var arrayId = decodedId.split('#');
-                var id = arrayId[0];
-
-                var titleParts = item['title'].split('Strategis] ');
-                var title = titleParts.length > 1 ? titleParts[1] : item['title'];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _buildStatisticCategory(
-                    title: title,
-                    id: id,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DataTableScreen(
-                          id: id,
-                          title: title,
-                          tableType: '2',
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: AppColors.primaryNavy,
+        backgroundColor: Colors.white,
+        child: FutureBuilder<dynamic>(
+          future: _dataFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Shimmer.fromColors(
+                      baseColor: Colors.grey.shade300,
+                      highlightColor: Colors.grey.shade100,
+                      child: Container(
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                     ),
+                  );
+                },
+              );
+            } else if (snapshot.hasError) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                children: [
+                  ErrorStateWidget(
+                    title: 'Gagal Memuat Indikator Strategis',
+                    message: 'Tidak dapat mengambil data indikator strategis dari server.',
+                    onRetry: () {
+                      setState(() {
+                        _loadData();
+                      });
+                    },
                   ),
-                );
-              },
-            );
-          }
-        },
+                ],
+              );
+            } else if (!snapshot.hasData || snapshot.data!['data'] == null || snapshot.data!['data'][1] == null) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                children: const [
+                  EmptyStateWidget(
+                    title: 'Data Strategis Kosong',
+                    message: 'Belum ada indikator strategis yang tersedia.',
+                  ),
+                ],
+              );
+            } else {
+              final items = snapshot.data!['data'][1] as List<dynamic>;
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics()),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  var item = items[index];
+                  var decodedId = utf8.decode(base64.decode(item['id'].toString()));
+                  var arrayId = decodedId.split('#');
+                  var id = arrayId[0];
+
+                  var titleParts = item['title'].split('Strategis] ');
+                  var title = titleParts.length > 1 ? titleParts[1] : item['title'];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _buildStatisticCategory(
+                      title: title,
+                      id: id,
+                      onTap: () => Navigator.push(
+                        context,
+                        SmoothPageRoute(
+                          child: DataTableScreen(
+                            id: id,
+                            title: title,
+                            tableType: '2',
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
+          },
+        ),
       ),
     );
   }
@@ -243,7 +246,8 @@ class _StrategisState extends State<Strategis> {
 
   Future<String> fetchDescription(String id) async {
     try {
-      final response = await fetchData(ApiConfig.dataUrl(varId: id));
+      final response =
+          await BpsApiService.fetchJson(ApiConfig.dataUrl(varId: id));
       final data = response;
       final vervarData = data["vervar"] ?? [];
       final varData = data["var"] ?? [];

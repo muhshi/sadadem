@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'package:Dalem/berita/detail_berita.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html_unescape/html_unescape.dart';
-import 'package:http/http.dart' as http;
 import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/state_widgets.dart';
+import 'package:Dalem/services/bps_api_service.dart';
+import 'package:Dalem/utils/page_transitions.dart';
 
 class Homeberita extends StatefulWidget {
   final String title;
@@ -31,14 +31,10 @@ class HomeberitaState extends State<Homeberita> {
 
   Future<List<dynamic>> fetchBerita() async {
     try {
-      final url = ApiConfig.listUrl(model: 'news');
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        final dataList = jsonResponse['data'][1] as List<dynamic>;
-        if (dataList.isNotEmpty) {
-          return [dataList[0]];
-        }
+      final list = await BpsApiService.fetchDataList(
+          ApiConfig.listUrl(model: 'news'));
+      if (list.isNotEmpty) {
+        return [list[0]];
       }
       return [];
     } catch (e) {
@@ -164,8 +160,8 @@ class HomeberitaState extends State<Homeberita> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailBerita(newsId: item['news_id'].toString()),
+                            SmoothPageRoute(
+                              child: DetailBerita(newsId: item['news_id'].toString()),
                             ),
                           );
                         },

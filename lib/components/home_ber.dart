@@ -44,8 +44,6 @@ class HomeberitaState extends State<Homeberita> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryNavy = AppColors.primaryNavy;
-
     return FutureBuilder<List<dynamic>>(
       future: futureBerita,
       builder: (context, snapshot) {
@@ -139,11 +137,11 @@ class HomeberitaState extends State<Homeberita> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: primaryNavy,
+                                color: AppColors.linkAction,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
+                            const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.linkAction),
                           ],
                         ),
                       ),

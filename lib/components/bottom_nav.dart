@@ -40,26 +40,26 @@ class BottomNav extends StatelessWidget {
       ),
       child: NavigationBarTheme(
         data: NavigationBarThemeData(
-          indicatorColor: AppColors.primaryNavy.withValues(alpha: 0.12),
+          indicatorColor: AppColors.navIndicator,
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.primaryNavy,
+                color: AppColors.navSelected,
               );
             }
             return GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
+              color: AppColors.navUnselected,
             );
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return IconThemeData(color: AppColors.primaryNavy, size: 24);
+              return const IconThemeData(color: AppColors.navSelected, size: 24);
             }
-            return const IconThemeData(color: AppColors.textSecondary, size: 24);
+            return const IconThemeData(color: AppColors.navUnselected, size: 24);
           }),
         ),
         child: NavigationBar(

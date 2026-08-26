@@ -10,7 +10,6 @@ import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/full_screen_image_viewer.dart';
 import 'package:Dalem/components/state_widgets.dart';
 import 'package:Dalem/services/bps_api_service.dart';
-import 'package:Dalem/utils/page_transitions.dart';
 
 class HomeInfo extends StatefulWidget {
   final String title;
@@ -46,8 +45,6 @@ class HomeInfoState extends State<HomeInfo> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryNavy = AppColors.primaryNavy;
-
     return FutureBuilder<List<dynamic>>(
       future: futureBerita,
       builder: (context, snapshot) {
@@ -141,11 +138,11 @@ class HomeInfoState extends State<HomeInfo> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: primaryNavy,
+                                color: AppColors.linkAction,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
+                            const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.linkAction),
                           ],
                         ),
                       ),

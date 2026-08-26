@@ -78,11 +78,11 @@ class HomePublication extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: primaryNavy,
+                          color: AppColors.linkAction,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded, size: 14, color: primaryNavy),
+                      const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.linkAction),
                     ],
                   ),
                 ),

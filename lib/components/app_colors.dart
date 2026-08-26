@@ -26,7 +26,24 @@ class AppColors {
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textMuted = Color(0xFF94A3B8);
 
-  // Shadow
+  // Structural & Sub-page Colors (30% Rule - Netral & Elegan)
+  static const Color slateDark = Color(0xFF0F172A);
+  static const Color slateMedium = Color(0xFF1E293B);
+  static const Color slateLight = Color(0xFF334155);
+
+  static LinearGradient get subAppBarGradient => const LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [slateDark, slateMedium],
+      );
+
+  // Navigation & Interactive States
+  static const Color navSelected = Color(0xFF0F172A);
+  static const Color navUnselected = Color(0xFF64748B);
+  static const Color navIndicator = Color(0xFFF1F5F9);
+  static const Color linkAction = Color(0xFF2563EB); // Clean action blue
+
+  // Shadows
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
           color: Colors.black.withValues(alpha: 0.04),

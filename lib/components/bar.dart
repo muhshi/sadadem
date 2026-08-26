@@ -21,14 +21,7 @@ class AppBar2 extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            AppColors.primaryNavy,
-            AppColors.primaryLight,
-          ],
-        ),
+        gradient: AppColors.subAppBarGradient,
         boxShadow: const [
           BoxShadow(
             color: Color(0x1F000000),

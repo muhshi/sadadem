@@ -1,9 +1,3 @@
-import 'package:Dalem/berita/berita.dart';
-import 'package:Dalem/components/home_ber.dart';
-import 'package:Dalem/components/home_info.dart';
-import 'package:Dalem/components/bottom_nav.dart';
-import 'package:Dalem/subcat/ekonomi.dart';
-import 'package:Dalem/subcat/lingkungan.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,15 +7,15 @@ import 'package:Dalem/components/bottom_nav.dart';
 import 'package:Dalem/components/home_ber.dart';
 import 'package:Dalem/components/home_info.dart';
 import 'package:Dalem/components/home_pub.dart';
+import 'package:Dalem/components/bps_theme.dart';
+import 'package:Dalem/berita/berita.dart';
 import 'package:Dalem/infographic/infographic.dart';
 import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
-import 'package:Dalem/berita/berita.dart';
 import 'package:Dalem/strategis/strategis.dart';
 import 'package:Dalem/subcat/demografi.dart';
 import 'package:Dalem/subcat/lingkungan.dart';
 import 'package:Dalem/subcat/ekonomi.dart';
-import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/services/bps_api_service.dart';
 import 'package:Dalem/utils/page_transitions.dart';
@@ -97,7 +91,7 @@ class _HomepageState extends State<Homepage> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryNavy.withValues(alpha: 0.06),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
@@ -124,12 +118,12 @@ class _HomepageState extends State<Homepage> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryNavy.withValues(alpha: 0.1),
+                                    color: const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.search_rounded,
-                                    color: AppColors.primaryNavy,
+                                    color: Color(0xFF64748B),
                                     size: 20,
                                   ),
                                 ),

@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/table/table.dart';
 import 'package:Dalem/config/api_config.dart';
 import 'package:Dalem/services/bps_api_service.dart';
@@ -52,19 +53,54 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Center(
-                        child: Image.asset(
-                          'assets/img/homei.png',
-                          height: 50,
-                          errorBuilder: (context, error, stackTrace) => Text(
-                            'BPS KABUPATEN DEMAK',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            'assets/img/homei.png',
+                            height: 44,
+                            errorBuilder: (context, error, stackTrace) => Text(
+                              'BPS KABUPATEN DEMAK',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.campaign_rounded,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  BpsTheme.current().activityName,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       Align(
                         alignment: Alignment.centerRight,
@@ -94,7 +130,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -280,7 +316,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         data,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
-                          color: AppColors.primaryNavy,
+                          color: const Color(0xFF0F172A),
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                         ),

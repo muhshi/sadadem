@@ -12,6 +12,7 @@ import 'package:Dalem/berita/berita.dart';
 import 'package:Dalem/infographic/infographic.dart';
 import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
+import 'package:Dalem/publikasi/all_publications_page.dart';
 import 'package:Dalem/strategis/strategis.dart';
 import 'package:Dalem/subcat/demografi.dart';
 import 'package:Dalem/subcat/lingkungan.dart';
@@ -81,26 +82,30 @@ class _HomepageState extends State<Homepage> {
               delegate: SliverChildListDelegate(
                 [
                   CustomAppBar(key: ValueKey('appbar_$_refreshKey')),
-                  // Search Bar Card
+                  // 🔍 Redesigned Prominent Search Bar Card
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
                     child: Container(
-                      height: 54,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 18,
+                            offset: const Offset(0, 5),
+                          ),
+                          BoxShadow(
+                            color: AppColors.primaryNavy.withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
-                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       ),
                       child: Material(
                         color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         child: InkWell(
                           onTap: () {
                             Navigator.push(
@@ -110,53 +115,132 @@ class _HomepageState extends State<Homepage> {
                               ),
                             );
                           },
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             child: Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(8),
+                                  width: 44,
+                                  height: 44,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.search_rounded,
-                                    color: Color(0xFF64748B),
-                                    size: 20,
+                                    color: AppColors.primaryNavy,
+                                    size: 22,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Text(
-                                    'Cari data statistik, publikasi, dll...',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: const Color(0xFF94A3B8),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Cari data statistik Demak...',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: const Color(0xFF1E293B),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Inflasi, Kemiskinan, PDRB, Penduduk...',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: const Color(0xFF94A3B8),
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
                                 ),
+                                const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: AppColors.primaryNavy,
+                                    borderRadius: BorderRadius.circular(11),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primaryNavy.withValues(alpha: 0.25),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                  child: Text(
-                                    'Cari',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: const Color(0xFF64748B),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Cari',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: Colors.white,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: Colors.white,
+                                        size: 13,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+
+                  // 🏷️ Quick Search Chips (Popular shortcut tags)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            margin: const EdgeInsets.only(right: 6),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.bolt_rounded,
+                                  size: 14,
+                                  color: Color(0xFFF59E0B),
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'Populer:',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _buildQuickTopicChip('Inflasi'),
+                          _buildQuickTopicChip('Kemiskinan'),
+                          _buildQuickTopicChip('Jumlah Penduduk'),
+                          _buildQuickTopicChip('PDRB'),
+                          _buildQuickTopicChip('Pertanian'),
+                          _buildQuickTopicChip('Ketenagakerjaan'),
+                        ],
                       ),
                     ),
                   ),
@@ -297,7 +381,7 @@ class _HomepageState extends State<Homepage> {
                       Navigator.push(
                         context,
                         SmoothPageRoute(
-                          child: const Publikasi(),
+                          child: const AllPublicationsPage(),
                         ),
                       );
                     },
@@ -453,6 +537,52 @@ class _HomepageState extends State<Homepage> {
                   ],
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickTopicChip(String topic) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              SmoothPageRoute(
+                child: SearchPage(
+                  autofocus: false,
+                  initialQuery: topic,
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5.5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Text(
+              topic,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF475569),
+              ),
             ),
           ),
         ),

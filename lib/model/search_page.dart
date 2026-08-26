@@ -18,10 +18,13 @@ import 'package:Dalem/main_screen.dart';
 class SearchPage extends StatefulWidget {
   final bool autofocus;
   final bool showBottomNav;
+  final String? initialQuery;
+
   const SearchPage({
     super.key,
     required this.autofocus,
     this.showBottomNav = true,
+    this.initialQuery,
   });
 
   @override
@@ -55,6 +58,13 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     _loadSearchHistory();
     _fetchRecommendations();
+    if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
+      final query = widget.initialQuery!.trim();
+      _searchController.text = query;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _performSearch(query, saveToHistory: true);
+      });
+    }
   }
 
   @override

@@ -7,10 +7,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bottom_nav.dart';
+import 'package:Dalem/components/home_ber.dart';
+import 'package:Dalem/components/home_info.dart';
 import 'package:Dalem/components/state_widgets.dart';
+import 'package:Dalem/berita/berita.dart';
+import 'package:Dalem/infographic/infographic.dart';
+import 'package:Dalem/model/download.dart';
+import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/providers/publication_provider.dart';
+import 'package:Dalem/publikasi/all_publications_page.dart';
 import 'package:Dalem/publikasi/detail_publikasi.dart';
 import 'package:Dalem/main_screen.dart';
+import 'package:Dalem/utils/page_transitions.dart';
 
 class Publikasi extends StatefulWidget {
   final bool showBottomNav;
@@ -21,39 +29,25 @@ class Publikasi extends StatefulWidget {
 }
 
 class PublikasiState extends State<Publikasi> {
-  late ScrollController _scrollController;
+  int _refreshKey = 0;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_scrollListener);
-
-    // Initial fetch using Provider (uses memory cache if already fetched)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PublicationProvider>(context, listen: false).fetchPublications();
+      Provider.of<PublicationProvider>(context, listen: false)
+          .fetchPublications();
     });
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    final provider = Provider.of<PublicationProvider>(context, listen: false);
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !provider.isLoading &&
-        provider.hasMoreData &&
-        !provider.isError) {
-      provider.fetchPublications();
-    }
-  }
-
   Future<void> _handleRefresh() async {
-    await Provider.of<PublicationProvider>(context, listen: false).refreshPublications();
+    await Provider.of<PublicationProvider>(context, listen: false)
+        .refreshPublications();
+    if (mounted) {
+      setState(() {
+        _refreshKey++;
+      });
+    }
   }
 
   @override
@@ -74,16 +68,63 @@ class PublikasiState extends State<Publikasi> {
       child: Scaffold(
         backgroundColor: AppColors.backgroundScaffold,
         appBar: const AppBar2(
-          title: 'Daftar Publikasi',
+          title: 'Publikasi & Media Rilis',
         ),
         body: RefreshIndicator(
           onRefresh: _handleRefresh,
           color: AppColors.primaryNavy,
           backgroundColor: Colors.white,
-          child: Consumer<PublicationProvider>(
-            builder: (context, provider, child) {
-              return _buildBody(provider);
-            },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 📚 Section 1: Publikasi Terbaru
+                _buildPublicationsSection(),
+
+                const SizedBox(height: 16),
+
+                // 2. 📊 Section 2: Informasi & Infografis Terbaru
+                HomeInfo(
+                  key: ValueKey('pub_info_$_refreshKey'),
+                  title: 'Informasi & Infografis',
+                  onSeeAll: () {
+                    Navigator.push(
+                      context,
+                      SmoothPageRoute(
+                        child: const Infographic(),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 3. 📰 Section 3: Berita Kegiatan BPS
+                Homeberita(
+                  key: ValueKey('pub_berita_$_refreshKey'),
+                  title: 'Berita & Rilis BPS',
+                  onSeeAll: () {
+                    Navigator.push(
+                      context,
+                      SmoothPageRoute(
+                        child: const Berita(),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 4. ⚡ Quick Action Shortcuts
+                _buildQuickActions(),
+
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
         bottomNavigationBar: widget.showBottomNav
@@ -93,81 +134,189 @@ class PublikasiState extends State<Publikasi> {
     );
   }
 
-  Widget _buildBody(PublicationProvider provider) {
-    if (provider.isInitialLoading) {
-      return _buildSkeletonList();
-    }
-
-    if (provider.isError && provider.publications.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
-        children: [
-          ErrorStateWidget(
-            title: 'Gagal Memuat Publikasi',
-            message: 'Pastikan koneksi internet Anda terhubung dengan baik.',
-            onRetry: _handleRefresh,
+  Widget _buildPublicationsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
-      );
-    }
-
-    if (provider.publications.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
-        children: const [
-          EmptyStateWidget(
-            title: 'Belum Ada Publikasi',
-            message: 'Publikasi statistik terbaru akan muncul di sini.',
-            icon: Icons.menu_book_outlined,
-          ),
-        ],
-      );
-    }
-
-    return ListView.builder(
-      controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(
-        parent: BouncingScrollPhysics(),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      padding: const EdgeInsets.all(16.0),
-      itemCount: provider.publications.length + (provider.hasMoreData ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == provider.publications.length) {
-          return _buildPaginationLoader();
-        }
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryNavy,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Publikasi Terbaru',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      SmoothPageRoute(
+                        child: const AllPublicationsPage(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Lihat Semua',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppColors.linkAction,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 11,
+                          color: AppColors.linkAction,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
 
-        var item = provider.publications[index];
-        return _buildPublicationCard(item);
-      },
+            // Content List (Limited to 3 latest)
+            Consumer<PublicationProvider>(
+              builder: (context, provider, child) {
+                if (provider.isInitialLoading) {
+                  return _buildShimmerLoading();
+                }
+
+                if (provider.isError && provider.publications.isEmpty) {
+                  return ErrorStateWidget(
+                    title: 'Gagal Memuat Publikasi',
+                    message: 'Silakan periksa koneksi internet Anda.',
+                    isCompact: true,
+                    onRetry: _handleRefresh,
+                  );
+                }
+
+                if (provider.publications.isEmpty) {
+                  return const EmptyStateWidget(
+                    title: 'Belum Ada Publikasi',
+                    message: 'Data publikasi terbaru akan muncul di sini.',
+                    icon: Icons.menu_book_outlined,
+                  );
+                }
+
+                // Show top 3 publications
+                final items = provider.publications.take(3).toList();
+
+                return Column(
+                  children: [
+                    ...items.map((item) => _buildPublicationItem(item)),
+                    const SizedBox(height: 8),
+                    // Full List Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            SmoothPageRoute(
+                              child: const AllPublicationsPage(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          side: const BorderSide(
+                              color: Color(0xFFCBD5E1), width: 1.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: const Color(0xFFF8FAFC),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Buka Semua Publikasi BPS Demak',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF334155),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 15,
+                              color: Color(0xFF334155),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildPublicationCard(Map<String, dynamic> item) {
+  Widget _buildPublicationItem(Map<String, dynamic> item) {
     final title = item['title'] ?? 'Publikasi BPS';
     final coverUrl = item['cover'] ?? '';
     final releaseDate = item['rl_date'] ?? 'No Date';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-        border: Border.all(color: AppColors.borderDefault),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           onTap: () {
             Navigator.push(
               context,
@@ -177,65 +326,55 @@ class PublikasiState extends State<Publikasi> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(10.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cover Image
+                // Cover Thumbnail
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: coverUrl.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: coverUrl,
-                          width: 75,
-                          height: 105,
+                          width: 58,
+                          height: 80,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Shimmer.fromColors(
                             baseColor: Colors.grey.shade200,
                             highlightColor: Colors.grey.shade100,
                             child: Container(
-                              width: 75,
-                              height: 105,
+                              width: 58,
+                              height: 80,
                               color: Colors.white,
                             ),
                           ),
                           errorWidget: (context, url, error) => Container(
-                            width: 75,
-                            height: 105,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryNavy.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.menu_book_rounded,
-                                color: AppColors.textMuted,
-                                size: 28,
-                              ),
+                            width: 58,
+                            height: 80,
+                            color: const Color(0xFFE2E8F0),
+                            child: const Icon(
+                              Icons.menu_book_rounded,
+                              color: Color(0xFF94A3B8),
+                              size: 24,
                             ),
                           ),
                         )
                       : Container(
-                          width: 75,
-                          height: 105,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryNavy.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.menu_book_rounded,
-                              color: AppColors.textMuted,
-                              size: 28,
-                            ),
+                          width: 58,
+                          height: 80,
+                          color: const Color(0xFFE2E8F0),
+                          child: const Icon(
+                            Icons.menu_book_rounded,
+                            color: Color(0xFF94A3B8),
+                            size: 24,
                           ),
                         ),
                 ),
-                const SizedBox(width: 14),
-                // Details
+                const SizedBox(width: 12),
+                // Title & Metadata
                 Expanded(
                   child: SizedBox(
-                    height: 105,
+                    height: 80,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -243,100 +382,57 @@ class PublikasiState extends State<Publikasi> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Date Row & Badge
                             Row(
                               children: [
                                 const Icon(
                                   Icons.calendar_today_rounded,
-                                  size: 11,
-                                  color: AppColors.textSecondary,
+                                  size: 10.5,
+                                  color: Color(0xFF64748B),
                                 ),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    releaseDate,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryNavy
-                                        .withValues(alpha: 0.08),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    'PDF',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primaryNavy,
-                                    ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  releaseDate,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    color: const Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 6),
-                            // Title
+                            const SizedBox(height: 4),
                             Text(
                               title,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13.5,
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                                height: 1.35,
+                                color: const Color(0xFF1E293B),
+                                height: 1.3,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
-                        // Action row
                         Row(
                           children: [
                             Text(
-                              'Lihat Detail',
+                              'Lihat Dokumen',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.primaryLight,
+                                color: AppColors.primaryNavy,
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 3),
                             Icon(
                               Icons.arrow_forward_rounded,
-                              size: 13,
-                              color: AppColors.primaryLight,
+                              size: 12,
+                              color: AppColors.primaryNavy,
                             ),
                           ],
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                // Chevron icon container
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryNavy.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.primaryNavy,
-                      size: 18,
                     ),
                   ),
                 ),
@@ -348,87 +444,141 @@ class PublikasiState extends State<Publikasi> {
     );
   }
 
-  Widget _buildPaginationLoader() {
+  Widget _buildQuickActions() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade200,
-        highlightColor: Colors.grey.shade100,
-        child: Container(
-          height: 90,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildActionTile(
+              title: 'Cari Dokumen',
+              subtitle: 'Katalog Publikasi',
+              icon: Icons.search_rounded,
+              color: const Color(0xFF2563EB),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    child: const SearchPage(autofocus: true),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildActionTile(
+              title: 'Dokumen Diunduh',
+              subtitle: 'Baca Offline',
+              icon: Icons.download_done_rounded,
+              color: const Color(0xFF059669),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  SmoothPageRoute(
+                    child: const DownloadedPublicationsPage(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E293B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5,
+                          color: const Color(0xFF64748B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSkeletonList() {
-    return ListView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16.0),
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+  Widget _buildShimmerLoading() {
+    return Column(
+      children: List.generate(
+        3,
+        (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 10.0),
           child: Shimmer.fromColors(
             baseColor: Colors.grey.shade200,
             highlightColor: Colors.grey.shade100,
             child: Container(
-              padding: const EdgeInsets.all(12),
+              height: 90,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 75,
-                    height: 105,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 12,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          height: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          width: 180,
-                          height: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          width: 90,
-                          height: 12,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

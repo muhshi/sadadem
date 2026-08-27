@@ -249,13 +249,14 @@ class _SearchPageState extends State<SearchPage> {
         var decodedId = utf8.decode(base64.decode(item['id'].toString()));
         var arrayId = decodedId.split('#');
         var id = arrayId[0];
+        var tableType = arrayId.length > 1 ? arrayId[1] : '1';
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => DataTableScreen(
               id: id,
-              title: item['title'],
-              tableType: 'table',
+              title: item['title'] ?? '',
+              tableType: tableType,
             ),
           ),
         );

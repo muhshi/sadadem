@@ -22,10 +22,8 @@ class ListDetail514 extends StatelessWidget {
     {"sub_id": 523, "subcat_id": 514, "title": "Konsumsi dan Pendapatan", "icon": Icons.shopping_bag_rounded},
     {"sub_id": 524, "subcat_id": 514, "title": "Perlindungan Sosial", "icon": Icons.security_rounded},
     {"sub_id": 525, "subcat_id": 514, "title": "Pemukiman dan Perumahan", "icon": Icons.home_work_rounded},
-    {"sub_id": 526, "subcat_id": 514, "title": "Hukum dan Kriminal", "icon": Icons.gavel_rounded},
     {"sub_id": 527, "subcat_id": 514, "title": "Budaya", "icon": Icons.theater_comedy_rounded},
     {"sub_id": 528, "subcat_id": 514, "title": "Aktivitas Politik dan Komunitas", "icon": Icons.how_to_vote_rounded},
-    {"sub_id": 529, "subcat_id": 514, "title": "Penggunaan Waktu", "icon": Icons.access_time_filled_rounded},
   ];
 
   @override

@@ -17,10 +17,7 @@ class ListDetail515 extends StatelessWidget {
   static const List<Map<String, dynamic>> staticData = [
     {"sub_id": 530, "subcat_id": 515, "title": "Statistik Makroekonomi", "icon": Icons.show_chart_rounded},
     {"sub_id": 531, "subcat_id": 515, "title": "Neraca Ekonomi", "icon": Icons.account_balance_rounded},
-    {"sub_id": 532, "subcat_id": 515, "title": "Statistik Bisnis", "icon": Icons.storefront_rounded},
-    {"sub_id": 533, "subcat_id": 515, "title": "Statistik Sektoral", "icon": Icons.pie_chart_rounded},
     {"sub_id": 534, "subcat_id": 515, "title": "Keuangan Pemerintah & Fiskal", "icon": Icons.account_balance_wallet_rounded},
-    {"sub_id": 535, "subcat_id": 515, "title": "Perdagangan Internasional", "icon": Icons.import_export_rounded},
     {"sub_id": 536, "subcat_id": 515, "title": "Harga-Harga & Inflasi", "icon": Icons.sell_rounded},
     {"sub_id": 537, "subcat_id": 515, "title": "Biaya Tenaga Kerja", "icon": Icons.payments_rounded},
     {"sub_id": 538, "subcat_id": 515, "title": "IPTEK & Inovasi", "icon": Icons.lightbulb_rounded},

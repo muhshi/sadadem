@@ -115,15 +115,20 @@ class _CatdetailState extends State<Catdetail> {
                 ],
               );
             } else {
-              // Filter and sort data
+              // Filter and sort data safely
               var filteredData = snapshot.data!
                   .where((item) =>
-                      item['last_update'] != null &&
-                      item['last_update'].toString().isNotEmpty)
+                      item != null &&
+                      item is Map &&
+                      item['title'] != null &&
+                      item['title'].toString().isNotEmpty)
                   .toList();
 
-              filteredData.sort(
-                  (a, b) => b['last_update'].compareTo(a['last_update']));
+              filteredData.sort((a, b) {
+                final dateA = a['last_update']?.toString() ?? '';
+                final dateB = b['last_update']?.toString() ?? '';
+                return dateB.compareTo(dateA);
+              });
 
               if (filteredData.isEmpty) {
                 return ListView(
@@ -133,7 +138,7 @@ class _CatdetailState extends State<Catdetail> {
                     EmptyStateWidget(
                       title: 'Tabel Belum Tersedia',
                       message:
-                          'Belum ada data tabel statistik terbarui untuk kategori ini.',
+                          'Data tabel statistik untuk kategori ini belum tersedia dari BPS Kabupaten Demak.',
                     ),
                   ],
                 );
@@ -147,25 +152,35 @@ class _CatdetailState extends State<Catdetail> {
                 itemCount: filteredData.length,
                 itemBuilder: (context, index) {
                   var item = filteredData[index];
+                  final rawTitle = item['title']?.toString() ?? '';
+                  final cleanTitle = rawTitle.replaceAll(RegExp(r'<[^>]*>'), '');
+                  final lastUpdate = item['last_update']?.toString() ?? '';
+
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _buildStatisticCategory(
                       icon: Icons.table_chart_rounded,
-                      title: item['title'],
-                      lastUpdate: item['last_update'],
+                      title: cleanTitle,
+                      lastUpdate: lastUpdate,
                       onTap: () {
-                        var decodedId =
-                            utf8.decode(base64.decode(item['id'].toString()));
-                        var arrayId = decodedId.split('#');
-                        var id = arrayId[0];
-                        var tableType = arrayId.length > 1 ? arrayId[1] : '1';
+                        String id = '';
+                        String tableType = '1';
+                        try {
+                          final rawId = item['id']?.toString() ?? '';
+                          final decodedId = utf8.decode(base64.decode(rawId));
+                          final arrayId = decodedId.split('#');
+                          id = arrayId[0];
+                          tableType = arrayId.length > 1 ? arrayId[1] : '1';
+                        } catch (_) {
+                          id = item['id']?.toString() ?? '';
+                        }
 
                         Navigator.push(
                           context,
                           SmoothPageRoute(
                             child: Dalem_table.DataTableScreen(
                               id: id,
-                              title: item['title'],
+                              title: cleanTitle,
                               tableType: tableType,
                             ),
                           ),
@@ -185,7 +200,7 @@ class _CatdetailState extends State<Catdetail> {
   Widget _buildStatisticCategory({
     required IconData icon,
     required String title,
-    required String lastUpdate,
+    String lastUpdate = '',
     required VoidCallback onTap,
   }) {
     final primaryNavy = AppColors.primaryNavy;

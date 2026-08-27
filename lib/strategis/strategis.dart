@@ -249,23 +249,37 @@ class _StrategisState extends State<Strategis> {
       final response =
           await BpsApiService.fetchJson(ApiConfig.dataUrl(varId: id));
       final data = response;
-      final vervarData = data["vervar"] ?? [];
-      final varData = data["var"] ?? [];
-      final turvarData = data["turvar"] ?? [];
-      final dataContent = data["datacontent"] ?? {} as Map<String, dynamic>;
-      final tahun = data["tahun"] ?? [];
-      final turTahun = data["turtahun"] ?? [];
+      final vervarData = (data["vervar"] as List<dynamic>?) ?? [];
+      final varData = (data["var"] as List<dynamic>?) ?? [];
+      final turvarData = (data["turvar"] as List<dynamic>?) ?? [];
+      final dataContent = (data["datacontent"] is Map)
+          ? (data["datacontent"] as Map)
+          : <String, dynamic>{};
+      final tahun = (data["tahun"] as List<dynamic>?) ?? [];
+      final turTahun = (data["turtahun"] as List<dynamic>?) ?? [];
 
-      var unit = varData[varData.length - 1]["unit"] ?? '';
-      var key =
-          '${vervarData[vervarData.length - 1]["val"]}${varData[varData.length - 1]["val"]}${turvarData[turvarData.length - 1]["val"]}${tahun[tahun.length - 1]["val"]}${turTahun[turTahun.length - 1]["val"]}';
-      var resValue = "${dataContent[key]} $unit".replaceAll('.', ',');
+      if (varData.isEmpty || vervarData.isEmpty || tahun.isEmpty) {
+        return 'Tidak tersedia';
+      }
+
+      final unit = varData.last["unit"]?.toString() ?? '';
+      final turVarVal = turvarData.isNotEmpty ? turvarData.last["val"] : 0;
+      final turTahunVal = turTahun.isNotEmpty ? turTahun.last["val"] : 0;
+      final key =
+          '${vervarData.last["val"]}${varData.last["val"]}$turVarVal${tahun.last["val"]}$turTahunVal';
+
+      final rawVal = dataContent[key];
+      if (rawVal == null || rawVal.toString() == '-') {
+        return 'Tidak tersedia';
+      }
+
+      var resValue = "$rawVal $unit".replaceAll('.', ',');
       if (!resValue.contains(',')) {
         resValue = resValue.replaceAllMapped(
             RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
       }
 
-      var resTahun = tahun[tahun.length - 1]["label"];
+      var resTahun = tahun.last["label"]?.toString() ?? '';
       return '$resValue ($resTahun)';
     } catch (e) {
       return 'Tidak tersedia';

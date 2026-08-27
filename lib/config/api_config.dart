@@ -39,11 +39,31 @@ class ApiConfig {
     return '$baseUrl/view/domain/$domain/model/$model/lang/$lang/id/$id/key/$apiKey/';
   }
 
+  /// Returns the dynamic BPS year range code up to the current year (e.g. '026' for 2026, '027' for 2027).
+  /// This queries all available data periods up to the current year from the BPS API data endpoint.
+  static String get defaultTh {
+    final currentYear = DateTime.now().year;
+    final yy = (currentYear % 100).toString().padLeft(2, '0');
+    return '0$yy';
+  }
+
   /// Builds the full URL for a BPS API data endpoint.
   static String dataUrl({
     required String varId,
-    String th = '024',
+    String? th,
   }) {
-    return '$baseUrl/list?domain=$domain&model=data&lang=ind&var=$varId&th=$th&key=$apiKey';
+    final thParam = (th != null && th.isNotEmpty) ? th : defaultTh;
+    return '$baseUrl/list?domain=$domain&model=data&lang=ind&var=$varId&th=$thParam&key=$apiKey';
+  }
+
+  /// Builds the URL for BPS API SIMDASI (interoperabilitas) endpoint (tableType == '3').
+  static String simdasiUrl({
+    required String idTabel,
+    int? tahun,
+    String id = '25',
+  }) {
+    final targetTahun = tahun ?? DateTime.now().year;
+    final wilayah = '${domain}000';
+    return '$baseUrl/interoperabilitas/datasource/simdasi/id/$id/tahun/$targetTahun/id_tabel/$idTabel/wilayah/$wilayah/key/$apiKey';
   }
 }

@@ -11,7 +11,6 @@ import 'package:Dalem/components/bps_theme.dart';
 import 'package:Dalem/berita/berita.dart';
 import 'package:Dalem/infographic/infographic.dart';
 import 'package:Dalem/model/search_page.dart';
-import 'package:Dalem/publikasi/publikasi.dart';
 import 'package:Dalem/publikasi/all_publications_page.dart';
 import 'package:Dalem/strategis/strategis.dart';
 import 'package:Dalem/subcat/demografi.dart';

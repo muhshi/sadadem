@@ -33,10 +33,14 @@ class KbliMainPage extends StatefulWidget {
   State<KbliMainPage> createState() => _KbliMainPageState();
 }
 
-class _KbliMainPageState extends State<KbliMainPage> {
+class _KbliMainPageState extends State<KbliMainPage>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final KbliRepository _repository = KbliRepository();
+
+  @override
+  bool get wantKeepAlive => true;
 
   Timer? _debounce;
   List<KbliItem> _searchResults = [];
@@ -274,8 +278,9 @@ class _KbliMainPageState extends State<KbliMainPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FC),
+      backgroundColor: AppColors.backgroundScaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -329,22 +334,8 @@ class _KbliMainPageState extends State<KbliMainPage> {
   Widget _buildHeroHeader() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        20,
-        MediaQuery.of(context).padding.top + 16,
-        20,
-        24,
-      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF0F172A),
-            AppColors.primaryNavy,
-            const Color(0xFF1E3A8A),
-          ],
-        ),
+        gradient: AppColors.heroNavyGradient,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
           bottomRight: Radius.circular(24),
@@ -357,136 +348,146 @@ class _KbliMainPageState extends State<KbliMainPage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
+          // Subtle Ambient Glow Circle in Background
+          Positioned(
+            top: -30,
+            right: -30,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.035),
+              ),
+            ),
+          ),
+
+          // Main Header Content
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.of(context).padding.top + 16,
+              20,
+              22,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'PINTAR KBLI',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.campaignOrange,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'SE2026',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Klasifikasi Cerdas • BPS Kabupaten Demak',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Color(0xFF60A5FA),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    const SizedBox(width: 8),
+
+                    // Network Status Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _isOnline
+                            ? AppColors.statusOnline.withValues(alpha: 0.2)
+                            : AppColors.statusOffline.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _isOnline
+                              ? AppColors.statusOnlineGlow.withValues(alpha: 0.5)
+                              : AppColors.statusOfflineGlow.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'PINTAR KBLI',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
+                          Container(
+                            width: 7.5,
+                            height: 7.5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _isOnline
+                                  ? AppColors.statusOnlineGlow
+                                  : AppColors.statusOfflineGlow,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isOnline
+                                          ? AppColors.statusOnlineGlow
+                                          : AppColors.statusOfflineGlow)
+                                      .withValues(alpha: 0.6),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'SE2026',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
+                          Text(
+                            _isOnline ? 'Online AI' : 'Offline FTS5',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ],
-                      ),
-                      Text(
-                        'Klasifikasi Cerdas • BPS Kabupaten Demak',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              // Network Status Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: _isOnline
-                      ? const Color(0xFF059669).withValues(alpha: 0.2)
-                      : const Color(0xFFD97706).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: _isOnline
-                        ? const Color(0xFF34D399).withValues(alpha: 0.5)
-                        : const Color(0xFFFBBF24).withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isOnline
-                            ? const Color(0xFF34D399)
-                            : const Color(0xFFFBBF24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (_isOnline
-                                    ? const Color(0xFF34D399)
-                                    : const Color(0xFFFBBF24))
-                                .withValues(alpha: 0.6),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _isOnline ? 'Online AI' : 'Offline FTS5',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Temukan kode KBLI 2025 & KBJI 2014 dengan pencarian semantik cerdas.',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.85),
-              height: 1.4,
+                const SizedBox(height: 14),
+                Text(
+                  'Temukan kode KBLI 2025 & KBJI 2014 secara cepat dan akurat.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.85),
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -502,14 +503,14 @@ class _KbliMainPageState extends State<KbliMainPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _isSearchFocused
-              ? const Color(0xFF2563EB)
-              : const Color(0xFFE2E8F0),
+              ? AppColors.linkAction
+              : AppColors.borderDefault,
           width: _isSearchFocused ? 1.8 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
             color: _isSearchFocused
-                ? const Color(0xFF2563EB).withValues(alpha: 0.12)
+                ? AppColors.linkAction.withValues(alpha: 0.12)
                 : Colors.black.withValues(alpha: 0.04),
             blurRadius: _isSearchFocused ? 12 : 8,
             offset: const Offset(0, 3),
@@ -523,7 +524,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF0F172A),
+          color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
           hintText: _selectedFilter == 'KBLI'
@@ -534,15 +535,15 @@ class _KbliMainPageState extends State<KbliMainPage> {
           hintStyle: GoogleFonts.plusJakartaSans(
             fontSize: 13.5,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF94A3B8),
+            color: AppColors.textMuted,
           ),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 14, right: 10),
             child: Icon(
               Icons.search_rounded,
               color: _isSearchFocused
-                  ? const Color(0xFF2563EB)
-                  : const Color(0xFF64748B),
+                  ? AppColors.linkAction
+                  : AppColors.textSecondary,
               size: 22,
             ),
           ),
@@ -553,12 +554,12 @@ class _KbliMainPageState extends State<KbliMainPage> {
                     padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFFE2E8F0),
+                      color: AppColors.borderDefault,
                     ),
                     child: const Icon(
                       Icons.close_rounded,
                       size: 16,
-                      color: Color(0xFF475569),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   onPressed: () {
@@ -590,15 +591,15 @@ class _KbliMainPageState extends State<KbliMainPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryNavy : Colors.white,
+          color: isSelected ? AppColors.slateDark : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primaryNavy : const Color(0xFFCBD5E1),
+            color: isSelected ? AppColors.slateDark : AppColors.borderDefault,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primaryNavy.withValues(alpha: 0.25),
+                    color: AppColors.slateDark.withValues(alpha: 0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -610,7 +611,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-            color: isSelected ? Colors.white : const Color(0xFF475569),
+            color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
@@ -626,8 +627,8 @@ class _KbliMainPageState extends State<KbliMainPage> {
             subtitle: 'Kategori A - U',
             icon: Icons.account_tree_rounded,
             badge: '21 Sektor',
-            accentColor: const Color(0xFF1D4ED8),
-            bgGradient: const [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
+            accentColor: AppColors.kbliPrimary,
+            bgGradient: const [AppColors.kbliSurface, Color(0xFFDBEAFE)],
             onTap: () {
               Navigator.push(
                 context,
@@ -660,8 +661,8 @@ class _KbliMainPageState extends State<KbliMainPage> {
             subtitle: 'Crowdsourcing',
             icon: Icons.edit_note_rounded,
             badge: 'Baru',
-            accentColor: const Color(0xFFEA580C),
-            bgGradient: const [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
+            accentColor: AppColors.campaignOrange,
+            bgGradient: const [AppColors.campaignOrangeSurface, AppColors.campaignOrangeBorder],
             onTap: () {
               Navigator.push(
                 context,
@@ -687,7 +688,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderDefault),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -743,7 +744,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -754,7 +755,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF64748B),
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -770,21 +771,21 @@ class _KbliMainPageState extends State<KbliMainPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: AppColors.kbliSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
+        border: Border.all(color: AppColors.kbliBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_rounded, size: 18, color: Color(0xFF2563EB)),
+          const Icon(Icons.info_rounded, size: 18, color: AppColors.kbliPrimary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _statusMessage!,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: const Color(0xFF1E40AF),
+                color: AppColors.kbliText,
                 height: 1.35,
               ),
             ),
@@ -825,7 +826,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1E293B),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const Spacer(),
@@ -833,12 +834,12 @@ class _KbliMainPageState extends State<KbliMainPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: _isOnline
-                            ? const Color(0xFFEFF6FF)
-                            : const Color(0xFFFFFBEB),
+                            ? AppColors.kbliSurface
+                            : AppColors.statusOfflineSurface,
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
                           color: _isOnline
-                              ? const Color(0xFFBFDBFE)
+                              ? AppColors.kbliBorder
                               : const Color(0xFFFDE68A),
                         ),
                       ),
@@ -849,8 +850,8 @@ class _KbliMainPageState extends State<KbliMainPage> {
                             _isOnline ? Icons.bolt_rounded : Icons.storage_rounded,
                             size: 12,
                             color: _isOnline
-                                ? const Color(0xFF1D4ED8)
-                                : const Color(0xFFB45309),
+                                ? AppColors.kbliPrimary
+                                : AppColors.statusOffline,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -859,8 +860,8 @@ class _KbliMainPageState extends State<KbliMainPage> {
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: _isOnline
-                                  ? const Color(0xFF1D4ED8)
-                                  : const Color(0xFFB45309),
+                                  ? AppColors.kbliPrimary
+                                  : AppColors.statusOffline,
                             ),
                           ),
                         ],
@@ -894,10 +895,10 @@ class _KbliMainPageState extends State<KbliMainPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
+                colors: [AppColors.kbliSurface, Color(0xFFDBEAFE)],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
+              border: Border.all(color: AppColors.kbliBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,7 +908,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1D4ED8),
+                        color: AppColors.kbliPrimary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.store_rounded, color: Colors.white, size: 16),
@@ -928,7 +929,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                   'KBLI (Klasifikasi Baku Lapangan Usaha Indonesia) mencakup 1.569 kode kelompok usaha 5-digit untuk mengidentifikasi aktivitas ekonomi unit usaha pada Sensus Ekonomi 2026.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: const Color(0xFF1E40AF),
+                    color: AppColors.kbliText,
                     height: 1.45,
                   ),
                 ),
@@ -944,14 +945,14 @@ class _KbliMainPageState extends State<KbliMainPage> {
           // Featured KBLI List Header
           Row(
             children: [
-              const Icon(Icons.star_rounded, size: 18, color: Color(0xFF2563EB)),
+              const Icon(Icons.star_rounded, size: 18, color: AppColors.kbliPrimary),
               const SizedBox(width: 6),
               Text(
                 'Contoh Bidang Usaha KBLI Populer',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -974,10 +975,10 @@ class _KbliMainPageState extends State<KbliMainPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFECFDF5), Color(0xFFD1FAE5)],
+                colors: [AppColors.kbjiSurface, Color(0xFFD1FAE5)],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFA7F3D0)),
+              border: Border.all(color: AppColors.kbjiBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -987,7 +988,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF047857),
+                        color: AppColors.kbjiPrimary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.badge_rounded, color: Colors.white, size: 16),
@@ -998,7 +999,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF065F46),
+                        color: AppColors.kbjiText,
                       ),
                     ),
                   ],
@@ -1008,7 +1009,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                   'KBJI (Klasifikasi Baku Jabatan Indonesia) mencakup 2.735 kode standar untuk mengklasifikasikan tugas, profesi, pekerjaan, dan jabatan tenaga kerja di Indonesia.',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: const Color(0xFF047857),
+                    color: AppColors.kbjiPrimary,
                     height: 1.45,
                   ),
                 ),
@@ -1024,14 +1025,14 @@ class _KbliMainPageState extends State<KbliMainPage> {
           // Featured KBJI List Header
           Row(
             children: [
-              const Icon(Icons.star_rounded, size: 18, color: Color(0xFF059669)),
+              const Icon(Icons.star_rounded, size: 18, color: AppColors.kbjiPrimary),
               const SizedBox(width: 6),
               Text(
                 'Contoh Jabatan / Pekerjaan KBJI Populer',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -1055,7 +1056,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
             const Icon(
               Icons.explore_rounded,
               size: 18,
-              color: Color(0xFF2563EB),
+              color: AppColors.kbliPrimary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -1063,7 +1064,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF1E293B),
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -1090,7 +1091,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
             const Icon(
               Icons.trending_up_rounded,
               size: 18,
-              color: Color(0xFF2563EB),
+              color: AppColors.kbliPrimary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -1100,7 +1101,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF1E293B),
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -1120,7 +1121,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: AppColors.borderDefault),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.02),
@@ -1132,14 +1133,18 @@ class _KbliMainPageState extends State<KbliMainPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(s.icon, size: 15, color: isKbli ? const Color(0xFF2563EB) : const Color(0xFF059669)),
+                    Icon(
+                      s.icon,
+                      size: 15,
+                      color: isKbli ? AppColors.kbliPrimary : AppColors.kbjiPrimary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       s.title,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF334155),
+                        color: AppColors.slateLight,
                       ),
                     ),
                   ],
@@ -1156,18 +1161,18 @@ class _KbliMainPageState extends State<KbliMainPage> {
     final isKbli = item.type.toUpperCase().contains('KBLI');
     final isKbji = item.type.toUpperCase().contains('KBJI');
     final badgeColor = isKbli
-        ? const Color(0xFF1D4ED8)
-        : (isKbji ? const Color(0xFF047857) : const Color(0xFF7C3AED));
+        ? AppColors.kbliPrimary
+        : (isKbji ? AppColors.kbjiPrimary : const Color(0xFF7C3AED));
     final badgeBg = isKbli
-        ? const Color(0xFFEFF6FF)
-        : (isKbji ? const Color(0xFFECFDF5) : const Color(0xFFF5F3FF));
+        ? AppColors.kbliSurface
+        : (isKbji ? AppColors.kbjiSurface : const Color(0xFFF5F3FF));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.borderDefault),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1214,7 +1219,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
+                        color: AppColors.slateDark,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -1257,7 +1262,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                         ),
                       ),
                     IconButton(
-                      icon: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF94A3B8)),
+                      icon: const Icon(Icons.copy_rounded, size: 16, color: AppColors.textMuted),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                       tooltip: 'Salin Kode',
@@ -1266,7 +1271,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFF0F172A),
+                            backgroundColor: AppColors.slateDark,
                             content: Text('Kode ${item.kode} berhasil disalin!'),
                             duration: const Duration(seconds: 1),
                           ),
@@ -1283,7 +1288,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0F172A),
+                    color: AppColors.textPrimary,
                     height: 1.35,
                   ),
                 ),
@@ -1297,7 +1302,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
-                      color: const Color(0xFF64748B),
+                      color: AppColors.textSecondary,
                       height: 1.45,
                     ),
                   ),
@@ -1320,7 +1325,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                         const Icon(
                           Icons.format_quote_rounded,
                           size: 14,
-                          color: Color(0xFF94A3B8),
+                          color: AppColors.textMuted,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -1331,7 +1336,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontStyle: FontStyle.italic,
-                              color: const Color(0xFF475569),
+                              color: AppColors.slateLight,
                             ),
                           ),
                         ),
@@ -1348,14 +1353,14 @@ class _KbliMainPageState extends State<KbliMainPage> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryNavy,
+                        color: AppColors.linkAction,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(
+                    const Icon(
                       Icons.arrow_forward_rounded,
                       size: 13,
-                      color: AppColors.primaryNavy,
+                      color: AppColors.linkAction,
                     ),
                   ],
                 ),
@@ -1381,7 +1386,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
             child: const Icon(
               Icons.search_off_rounded,
               size: 48,
-              color: Color(0xFF94A3B8),
+              color: AppColors.textMuted,
             ),
           ),
           const SizedBox(height: 16),
@@ -1390,7 +1395,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1E293B),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
@@ -1401,7 +1406,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
-                color: const Color(0xFF64748B),
+                color: AppColors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -1417,7 +1422,7 @@ class _KbliMainPageState extends State<KbliMainPage> {
             icon: const Icon(Icons.account_tree_rounded, size: 16),
             label: const Text('Buka Hierarki KBLI'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryNavy,
+              backgroundColor: AppColors.slateDark,
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),

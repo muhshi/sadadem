@@ -43,6 +43,42 @@ class AppColors {
   static const Color navIndicator = Color(0xFFF1F5F9);
   static const Color linkAction = Color(0xFF2563EB); // Clean action blue
 
+  // Feature Identifiers & Badges (KBLI & KBJI)
+  static const Color kbliPrimary = Color(0xFF1D4ED8);
+  static const Color kbliSurface = Color(0xFFEFF6FF);
+  static const Color kbliBorder = Color(0xFFBFDBFE);
+  static const Color kbliText = Color(0xFF1E40AF);
+
+  static const Color kbjiPrimary = Color(0xFF047857);
+  static const Color kbjiSurface = Color(0xFFECFDF5);
+  static const Color kbjiBorder = Color(0xFFA7F3D0);
+  static const Color kbjiText = Color(0xFF065F46);
+
+  // Status & Connectivity States
+  static const Color statusOnline = Color(0xFF059669);
+  static const Color statusOnlineGlow = Color(0xFF34D399);
+  static const Color statusOnlineSurface = Color(0xFFECFDF5);
+
+  static const Color statusOffline = Color(0xFFD97706);
+  static const Color statusOfflineGlow = Color(0xFFFBBF24);
+  static const Color statusOfflineSurface = Color(0xFFFFFBEB);
+
+  // Campaign & Sensus Activity Accents
+  static const Color campaignOrange = Color(0xFFEA580C);
+  static const Color campaignOrangeSurface = Color(0xFFFFF7ED);
+  static const Color campaignOrangeBorder = Color(0xFFFFEDD5);
+
+  // Hero Gradients
+  static const LinearGradient heroNavyGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF0F172A),
+      Color(0xFF1E293B),
+      Color(0xFF1E3A5F),
+    ],
+  );
+
   // Shadows
   static List<BoxShadow> get cardShadow => [
         BoxShadow(

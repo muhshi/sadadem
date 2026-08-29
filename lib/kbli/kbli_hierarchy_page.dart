@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/kbli/models/kbli_hierarchy_item.dart';
 import 'package:Dalem/kbli/models/kbli_item.dart';
 import 'package:Dalem/kbli/services/kbli_repository.dart';
@@ -128,28 +129,16 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
           }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(
-        title: Text(
-          'Eksplorasi Hierarki KBLI',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppColors.primaryNavy,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () {
-            if (_breadcrumbs.length > 1) {
-              _navigateToBreadcrumb(_breadcrumbs.length - 2);
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
+      backgroundColor: AppColors.backgroundScaffold,
+      appBar: AppBar2(
+        title: 'Eksplorasi Hierarki KBLI',
+        onBackPressed: () {
+          if (_breadcrumbs.length > 1) {
+            _navigateToBreadcrumb(_breadcrumbs.length - 2);
+          } else {
+            Navigator.of(context).pop();
+          }
+        },
       ),
       body: Column(
         children: [
@@ -159,7 +148,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: const Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+              border: const Border(bottom: BorderSide(color: AppColors.borderDefault)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),
@@ -183,7 +172,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                       if (idx > 0)
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
+                          child: Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textMuted),
                         ),
                       InkWell(
                         onTap: () => _navigateToBreadcrumb(idx),
@@ -192,7 +181,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isLast
-                                ? const Color(0xFFEFF6FF)
+                                ? AppColors.kbliSurface
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -202,8 +191,8 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                               fontSize: 12,
                               fontWeight: isLast ? FontWeight.w800 : FontWeight.w600,
                               color: isLast
-                                  ? AppColors.primaryNavy
-                                  : const Color(0xFF64748B),
+                                  ? AppColors.kbliPrimary
+                                  : AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -223,10 +212,10 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
               onChanged: (val) => setState(() => _filterQuery = val.trim()),
               decoration: InputDecoration(
                 hintText: 'Cari di level ini...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textSecondary),
                 suffixIcon: _filterQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        icon: const Icon(Icons.clear_rounded, size: 18, color: AppColors.textSecondary),
                         onPressed: () {
                           _filterController.clear();
                           setState(() => _filterQuery = '');
@@ -257,7 +246,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(color: AppColors.borderDefault),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.02),
@@ -283,12 +272,12 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                                         decoration: BoxDecoration(
                                           color: isLeaf
                                               ? const Color(0xFFF0FDF4)
-                                              : const Color(0xFFEFF6FF),
+                                              : AppColors.kbliSurface,
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(
                                             color: isLeaf
                                                 ? const Color(0xFFBBF7D0)
-                                                : const Color(0xFFBFDBFE),
+                                                : AppColors.kbliBorder,
                                           ),
                                         ),
                                         child: Text(
@@ -298,7 +287,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                                             fontWeight: FontWeight.w800,
                                             color: isLeaf
                                                 ? const Color(0xFF15803D)
-                                                : AppColors.primaryNavy,
+                                                : AppColors.kbliPrimary,
                                           ),
                                         ),
                                       ),
@@ -314,7 +303,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF0F172A),
+                                                color: AppColors.textPrimary,
                                                 height: 1.3,
                                               ),
                                             ),
@@ -326,7 +315,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                                                 overflow: TextOverflow.ellipsis,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 12,
-                                                  color: const Color(0xFF64748B),
+                                                  color: AppColors.textSecondary,
                                                   height: 1.4,
                                                 ),
                                               ),
@@ -343,7 +332,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
                                             : Icons.chevron_right_rounded,
                                         color: isLeaf
                                             ? const Color(0xFF16A34A)
-                                            : const Color(0xFF94A3B8),
+                                            : AppColors.textMuted,
                                         size: 20,
                                       ),
                                     ],
@@ -395,7 +384,7 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF475569),
+                color: AppColors.slateLight,
               ),
             ),
             const SizedBox(height: 6),
@@ -406,13 +395,17 @@ class _KbliHierarchyPageState extends State<KbliHierarchyPage> {
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
-                color: const Color(0xFF94A3B8),
+                color: AppColors.textMuted,
               ),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Coba Lagi'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.slateDark,
+                foregroundColor: Colors.white,
+              ),
               onPressed: _fetchHierarchy,
             ),
           ],

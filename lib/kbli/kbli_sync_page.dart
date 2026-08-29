@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:Dalem/components/app_colors.dart';
-import 'package:Dalem/kbli/services/kbli_local_db_service.dart';
+import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/kbli/services/kbli_repository.dart';
+import 'package:Dalem/kbli/services/kbli_local_db_service.dart';
 
 class KbliSyncPage extends StatefulWidget {
   const KbliSyncPage({super.key});
@@ -16,93 +17,107 @@ class KbliSyncPage extends StatefulWidget {
 class _KbliSyncPageState extends State<KbliSyncPage> {
   final KbliRepository _repository = KbliRepository();
 
-  Map<String, dynamic> _localDbInfo = {};
-  Map<String, dynamic>? _serverSyncInfo;
-  bool _isCheckingServer = false;
+  bool _isChecking = true;
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   String _downloadStatusText = '';
+
+  Map<String, dynamic>? _serverInfo;
+  Map<String, dynamic> _localDbInfo = {};
   int _pendingSubmissionsCount = 0;
   bool _isSyncingSubmissions = false;
 
   @override
   void initState() {
     super.initState();
-    _loadStatus();
+    _checkStatus();
   }
 
-  Future<void> _loadStatus() async {
-    final localInfo = await KbliLocalDbService.getLocalDbInfo();
-    final pending = await KbliLocalDbService.getPendingSubmissions();
-    if (mounted) {
-      setState(() {
-        _localDbInfo = localInfo;
-        _pendingSubmissionsCount = pending.length;
-      });
-    }
-    _checkServerUpdate();
-  }
+  Future<void> _checkStatus() async {
+    setState(() => _isChecking = true);
 
-  Future<void> _checkServerUpdate() async {
-    setState(() => _isCheckingServer = true);
     try {
-      final info = await _repository.checkSyncInfo();
+      // 1. Cek info database server
+      final serverInfo = await _repository.checkSyncInfo();
+
+      // 2. Cek status database lokal
+      final localInfo = await KbliLocalDbService.getLocalDbInfo();
+
+      // 3. Cek catatan lapangan offline tertunda
+      final pending = await KbliLocalDbService.getPendingSubmissions();
+
       if (mounted) {
         setState(() {
-          _serverSyncInfo = info;
-          _isCheckingServer = false;
+          _serverInfo = serverInfo;
+          _localDbInfo = localInfo;
+          _pendingSubmissionsCount = pending.length;
+          _isChecking = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(() => _isCheckingServer = false);
+        setState(() => _isChecking = false);
       }
     }
   }
 
   Future<void> _startDownload() async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Penyimpanan SQLite FTS5 offline hanya didukung pada aplikasi Android/iOS/Desktop.'),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isDownloading = true;
       _downloadProgress = 0.0;
-      _downloadStatusText = 'Menghubungkan ke server...';
+      _downloadStatusText = 'Menyiapkan unduhan...';
     });
 
     try {
       final tempDir = await getTemporaryDirectory();
-      final tempPath = p.join(tempDir.path, 'kbli_bundle_download.db.gz');
-      final targetVersion = _serverSyncInfo?['version']?.toString() ??
-          DateTime.now().toIso8601String().substring(0, 10);
+      final tempPath = '${tempDir.path}/kbli_download_${DateTime.now().millisecondsSinceEpoch}.tmp';
+      final targetVersion = _serverInfo?['version']?.toString() ?? '2026.08';
 
       final success = await _repository.syncOfflineBundle(
         tempSavePath: tempPath,
         targetVersion: targetVersion,
-        onProgress: (count, total) {
+        onProgress: (received, total) {
           if (total > 0 && mounted) {
             setState(() {
-              _downloadProgress = count / total;
-              final downloadedMb = (count / (1024 * 1024)).toStringAsFixed(1);
-              final totalMb = (total / (1024 * 1024)).toStringAsFixed(1);
-              _downloadStatusText = 'Mengunduh: $downloadedMb MB / $totalMb MB (${(_downloadProgress * 100).toInt()}%)';
+              _downloadProgress = received / total;
+              final mbReceived = (received / (1024 * 1024)).toStringAsFixed(1);
+              final mbTotal = (total / (1024 * 1024)).toStringAsFixed(1);
+              _downloadStatusText = '$mbReceived MB / $mbTotal MB (${(_downloadProgress * 100).toInt()}%)';
             });
           }
         },
       );
 
       if (mounted) {
-        setState(() => _isDownloading = false);
+        setState(() {
+          _isDownloading = false;
+        });
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: Color(0xFF16A34A),
-              content: Text('Database offline KBLI & KBJI berhasil diperbarui!'),
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.statusOnline,
+              content: const Text('Database offline berhasil diunduh dan dipasang!'),
             ),
           );
-          _loadStatus();
+          _checkStatus();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
+              behavior: SnackBarBehavior.floating,
               backgroundColor: Color(0xFFDC2626),
-              content: Text('Gagal mengekstrak atau memasang database offline.'),
+              content: Text('Gagal memasang database offline.'),
             ),
           );
         }
@@ -112,8 +127,9 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
         setState(() => _isDownloading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            behavior: SnackBarBehavior.floating,
             backgroundColor: const Color(0xFFDC2626),
-            content: Text('Terjadi kesalahan: $e'),
+            content: Text('Gagal mengunduh: $e'),
           ),
         );
       }
@@ -122,17 +138,33 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
 
   Future<void> _syncPendingSubmissions() async {
     setState(() => _isSyncingSubmissions = true);
-    final count = await _repository.syncPendingSubmissions();
-    if (mounted) {
-      setState(() => _isSyncingSubmissions = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(count > 0
-              ? 'Berhasil menyinkronkan $count catatan lapangan.'
-              : 'Gagal menyinkronkan atau tidak ada koneksi internet.'),
-        ),
-      );
-      _loadStatus();
+    try {
+      final syncedCount = await _repository.syncPendingSubmissions();
+      if (mounted) {
+        setState(() => _isSyncingSubmissions = false);
+        if (syncedCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.statusOnline,
+              content: Text('Berhasil menyinkronkan $syncedCount catatan lapangan ke server!'),
+            ),
+          );
+          _checkStatus();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.statusOffline,
+              content: Text('Tidak ada data yang perlu disinkronkan atau perangkat sedang offline.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSyncingSubmissions = false);
+      }
     }
   }
 
@@ -144,22 +176,9 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
     final kbjiCount = _localDbInfo['kbji_count'] ?? 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(
-        title: Text(
-          'Sinkronisasi Database Offline',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppColors.primaryNavy,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppColors.backgroundScaffold,
+      appBar: const AppBar2(
+        title: 'Sinkronisasi Database Offline',
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -174,13 +193,13 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isReady
-                      ? [const Color(0xFF0F766E), const Color(0xFF0D9488)]
-                      : [const Color(0xFFB45309), const Color(0xFFD97706)],
+                      ? const [Color(0xFF0F766E), Color(0xFF0D9488)]
+                      : const [Color(0xFF9A3412), AppColors.campaignOrange],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: (isReady ? const Color(0xFF0F766E) : const Color(0xFFB45309))
+                    color: (isReady ? const Color(0xFF0F766E) : AppColors.campaignOrange)
                         .withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
@@ -218,7 +237,7 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                         Text(
                           isReady
                               ? 'Aplikasi siap digunakan mencari KBLI & KBJI tanpa internet.'
-                              : 'Unduh paket database agar tetap bisa mencari di wilayah tanpa sinyal.',
+                              : 'Unduh paket database untuk pencarian cepat di lapangan.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
                             color: Colors.white.withValues(alpha: 0.9),
@@ -231,125 +250,117 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Local Database Info Card
+            // Local Database Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                border: Border.all(color: AppColors.borderDefault),
+                boxShadow: AppColors.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.storage_rounded, size: 20, color: Color(0xFF1E293B)),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.storage_rounded, size: 20, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(width: 10),
                       Text(
-                        'Status Database Lokal HP',
+                        'Database Lokal di HP',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E293B),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
                   ),
-                  const Divider(height: 24),
-                  _buildInfoRow('Versi Bundle', localVersion),
-                  _buildInfoRow('Master KBLI 2025', '$kbliCount item'),
-                  _buildInfoRow('Master KBJI 2014', '$kbjiCount item'),
-                  _buildInfoRow('FTS5 Virtual Search Index', isReady ? 'Aktif' : 'Tidak Aktif'),
+                  const SizedBox(height: 14),
+                  _buildInfoRow('Status', isReady ? 'Terpasang (FTS5 Aktif)' : 'Belum Ada'),
+                  _buildInfoRow('Versi Master', localVersion),
+                  _buildInfoRow('Jumlah KBLI 2025', '$kbliCount item'),
+                  _buildInfoRow('Jumlah KBJI 2014', '$kbjiCount item'),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Server Update Card
+            // Server Master Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                border: Border.all(color: AppColors.borderDefault),
+                boxShadow: AppColors.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.cloud_sync_rounded, size: 20, color: Color(0xFF1D4ED8)),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.kbliSurface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.cloud_sync_rounded, size: 20, color: AppColors.kbliPrimary),
+                      ),
+                      const SizedBox(width: 10),
                       Text(
-                        'Pembaruan dari Server BPS',
+                        'Master Server BPS Demak',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E293B),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const Spacer(),
-                      IconButton(
-                        icon: _isCheckingServer
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.refresh_rounded, size: 20),
-                        tooltip: 'Periksa Server',
-                        onPressed: _isCheckingServer ? null : _checkServerUpdate,
-                      ),
+                      if (_isChecking)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                     ],
                   ),
-                  const Divider(height: 24),
-                  if (_serverSyncInfo != null) ...[
-                    _buildInfoRow('Versi Server', _serverSyncInfo!['version']?.toString() ?? '-'),
-                    _buildInfoRow('Ukuran Download', '${_serverSyncInfo!['file_size_mb'] ?? 14.23} MB'),
-                    _buildInfoRow('Total KBLI + KBJI', '${(_serverSyncInfo!['kbli_count'] ?? 1569) + (_serverSyncInfo!['kbji_count'] ?? 2735)} entri'),
-                    if (_serverSyncInfo!['sha256'] != null)
-                      _buildInfoRow(
-                        'Checksum SHA-256',
-                        '${_serverSyncInfo!['sha256'].toString().substring(0, 10)}...',
-                      ),
+                  const SizedBox(height: 14),
+                  if (_serverInfo != null) ...[
+                    _buildInfoRow('Versi Tersedia', _serverInfo!['version'] ?? '-'),
+                    _buildInfoRow('Ukuran Bundle', _serverInfo!['size_formatted'] ?? (_serverInfo!['bundle_size'] != null ? '${((_serverInfo!['bundle_size'] as int) / (1024 * 1024)).toStringAsFixed(2)} MB' : '-')),
+                    _buildInfoRow('Total KBLI', '${_serverInfo!['kbli_count'] ?? 1569} item'),
+                    _buildInfoRow('Total KBJI', '${_serverInfo!['kbji_count'] ?? 2735} item'),
+                    if (_serverInfo!['sha256'] != null)
+                      _buildInfoRow('Checksum SHA-256', '${(_serverInfo!['sha256'] as String).substring(0, 12)}...'),
                   ] else ...[
                     Text(
-                      _isCheckingServer
-                          ? 'Sedang memeriksa informasi server...'
-                          : 'Tidak dapat menghubungi server sync. Pastikan terhubung internet.',
+                      _isChecking ? 'Menghubungkan ke server...' : 'Tidak dapat terhubung ke server live.',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
-                        color: const Color(0xFF64748B),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                   const SizedBox(height: 16),
 
-                  // Download Button / Progress
                   if (_isDownloading) ...[
                     LinearProgressIndicator(
                       value: _downloadProgress,
-                      backgroundColor: const Color(0xFFE2E8F0),
-                      color: AppColors.primaryNavy,
+                      backgroundColor: AppColors.borderDefault,
+                      color: AppColors.kbliPrimary,
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -358,7 +369,7 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                       _downloadStatusText,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: const Color(0xFF475569),
+                        color: AppColors.slateLight,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -366,6 +377,14 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.slateDark,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         icon: const Icon(Icons.download_rounded, size: 18),
                         label: Text(
                           isReady ? 'Perbarui Database Offline' : 'Unduh Database Offline',
@@ -386,7 +405,7 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB),
+                  color: AppColors.statusOfflineSurface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
@@ -395,7 +414,7 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.cloud_upload_rounded, color: Color(0xFFD97706), size: 22),
+                        const Icon(Icons.cloud_upload_rounded, color: AppColors.statusOffline, size: 22),
                         const SizedBox(width: 8),
                         Text(
                           'Catatan Lapangan Tertunda',
@@ -420,7 +439,12 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD97706),
+                          backgroundColor: AppColors.campaignOrange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: _isSyncingSubmissions ? null : _syncPendingSubmissions,
                         child: _isSyncingSubmissions
@@ -452,7 +476,7 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
             label,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12.5,
-              color: const Color(0xFF64748B),
+              color: AppColors.textSecondary,
             ),
           ),
           Text(
@@ -460,7 +484,7 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1E293B),
+              color: AppColors.textPrimary,
             ),
           ),
         ],

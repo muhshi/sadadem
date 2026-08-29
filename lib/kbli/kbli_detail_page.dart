@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Dalem/components/app_colors.dart';
+import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/kbli/models/kbli_item.dart';
 import 'package:Dalem/kbli/kbli_submission_page.dart';
 import 'package:Dalem/utils/page_transitions.dart';
@@ -14,26 +15,13 @@ class KbliDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isKbli = item.type.toUpperCase().contains('KBLI');
-    final typeBadgeColor = isKbli ? const Color(0xFF1E40AF) : const Color(0xFF065F46);
-    final typeBadgeBg = isKbli ? const Color(0xFFEFF6FF) : const Color(0xFFECFDF5);
+    final typeBadgeColor = isKbli ? AppColors.kbliPrimary : AppColors.kbjiPrimary;
+    final typeBadgeBg = isKbli ? AppColors.kbliSurface : AppColors.kbjiSurface;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(
-        title: Text(
-          'Detail ${item.type}',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppColors.primaryNavy,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppColors.backgroundScaffold,
+      appBar: AppBar2(
+        title: 'Detail ${item.type}',
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -48,14 +36,8 @@ class KbliDetailPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                border: Border.all(color: AppColors.borderDefault),
+                boxShadow: AppColors.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +49,7 @@ class KbliDetailPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: typeBadgeBg,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: typeBadgeColor.withValues(alpha: 0.2)),
+                          border: Border.all(color: typeBadgeColor.withValues(alpha: 0.25)),
                         ),
                         child: Text(
                           item.type,
@@ -82,9 +64,7 @@ class KbliDetailPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
-                          ),
+                          color: AppColors.slateDark,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -99,12 +79,17 @@ class KbliDetailPage extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.copy_rounded, size: 18, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.textSecondary),
                         tooltip: 'Salin Kode & Judul',
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: '${item.kode} - ${item.judul}'));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Kode dan judul berhasil disalin')),
+                            SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: AppColors.slateDark,
+                              content: Text('Kode ${item.kode} berhasil disalin!'),
+                              duration: const Duration(seconds: 1),
+                            ),
                           );
                         },
                       ),
@@ -114,9 +99,9 @@ class KbliDetailPage extends StatelessWidget {
                   Text(
                     item.judul,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
+                      color: AppColors.textPrimary,
                       height: 1.35,
                     ),
                   ),
@@ -132,14 +117,8 @@ class KbliDetailPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                border: Border.all(color: AppColors.borderDefault),
+                boxShadow: AppColors.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,10 +128,10 @@ class KbliDetailPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
+                          color: AppColors.kbliSurface,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.description_rounded, size: 18, color: AppColors.primaryNavy),
+                        child: const Icon(Icons.description_rounded, size: 18, color: AppColors.kbliPrimary),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -160,7 +139,7 @@ class KbliDetailPage extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E293B),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
@@ -170,7 +149,7 @@ class KbliDetailPage extends StatelessWidget {
                     item.deskripsi.isNotEmpty ? item.deskripsi : 'Tidak ada deskripsi rinci untuk kode ini.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.5,
-                      color: const Color(0xFF334155),
+                      color: AppColors.slateLight,
                       height: 1.6,
                     ),
                   ),
@@ -186,14 +165,8 @@ class KbliDetailPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                border: Border.all(color: AppColors.borderDefault),
+                boxShadow: AppColors.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +187,7 @@ class KbliDetailPage extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E293B),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ],
@@ -225,7 +198,7 @@ class KbliDetailPage extends StatelessWidget {
                       'Belum ada contoh lapangan terdaftar. Jadilah yang pertama mengajukan contoh aktivitas lapangan untuk kode ini!',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
-                        color: const Color(0xFF64748B),
+                        color: AppColors.textSecondary,
                         fontStyle: FontStyle.italic,
                         height: 1.5,
                       ),
@@ -240,7 +213,7 @@ class KbliDetailPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: AppColors.borderDefault),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,7 +225,7 @@ class KbliDetailPage extends StatelessWidget {
                                   contoh,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
-                                    color: const Color(0xFF1E293B),
+                                    color: AppColors.textPrimary,
                                     height: 1.4,
                                   ),
                                 ),
@@ -271,13 +244,11 @@ class KbliDetailPage extends StatelessWidget {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primaryNavy, AppColors.primaryLight],
-                ),
+                gradient: AppColors.subAppBarGradient,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                    color: AppColors.slateDark.withValues(alpha: 0.25),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -294,7 +265,7 @@ class KbliDetailPage extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.add_comment_rounded, color: Colors.white, size: 20),
                 label: Text(
-                  'Ajukan Contoh Kegiatan Baru',
+                  'Ajukan Catatan Lapangan',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,

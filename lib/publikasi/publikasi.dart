@@ -28,8 +28,12 @@ class Publikasi extends StatefulWidget {
   PublikasiState createState() => PublikasiState();
 }
 
-class PublikasiState extends State<Publikasi> {
+class PublikasiState extends State<Publikasi>
+    with AutomaticKeepAliveClientMixin {
   int _refreshKey = 0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class PublikasiState extends State<Publikasi> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return PopScope(
       canPop: Navigator.canPop(context),
       onPopInvokedWithResult: (didPop, result) {
@@ -69,6 +74,7 @@ class PublikasiState extends State<Publikasi> {
         backgroundColor: AppColors.backgroundScaffold,
         appBar: const AppBar2(
           title: 'Publikasi & Media Rilis',
+          showBackButton: false,
         ),
         body: RefreshIndicator(
           onRefresh: _handleRefresh,

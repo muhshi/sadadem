@@ -29,10 +29,14 @@ class DownloadedPublicationsPage extends StatefulWidget {
 }
 
 class DownloadedPublicationsPageState
-    extends State<DownloadedPublicationsPage> {
+    extends State<DownloadedPublicationsPage>
+    with AutomaticKeepAliveClientMixin {
   late Future<List<Map<String, String>>> _downloadedFiles;
   String _sortCriteria = 'date';
   bool _permissionGranted = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -154,6 +158,7 @@ class DownloadedPublicationsPageState
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return PopScope(
       canPop: Navigator.canPop(context),
       onPopInvokedWithResult: (didPop, result) {
@@ -171,7 +176,8 @@ class DownloadedPublicationsPageState
         backgroundColor: AppColors.backgroundScaffold,
         appBar: AppBar2(
           title: 'File Unduhan',
-        actions: [
+          showBackButton: false,
+          actions: [
           Theme(
             data: Theme.of(context).copyWith(
               canvasColor: AppColors.primaryNavy,

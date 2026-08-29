@@ -8,14 +8,31 @@ import 'package:Dalem/components/bps_theme.dart';
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
-  Future<void> _openUrl(String urlString) async {
+  Future<void> _openUrl(BuildContext context, String urlString) async {
     final uri = Uri.parse(urlString);
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
       debugPrint('Could not launch $urlString: $e');
+      try {
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.slateDark,
+              content: Text('Tidak dapat membuka tautan: $urlString'),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -207,7 +224,9 @@ class AboutPage extends StatelessWidget {
                     subtitle: 'Jl. Kyai Singkil No. 24, Bintoro, Kec. Demak, Kab. Demak, Jawa Tengah 59511',
                     actionLabel: 'Buka Maps',
                     onTap: () => _openUrl(
-                        'https://maps.google.com/?q=BPS+Kabupaten+Demak'),
+                      context,
+                      'https://www.google.com/maps/search/?api=1&query=BPS+Kabupaten+Demak',
+                    ),
                   ),
                   const Divider(height: 18),
                   _buildContactTile(
@@ -215,7 +234,7 @@ class AboutPage extends StatelessWidget {
                     title: 'Website Resmi',
                     subtitle: 'demakkab.bps.go.id',
                     actionLabel: 'Kunjungi',
-                    onTap: () => _openUrl('https://demakkab.bps.go.id'),
+                    onTap: () => _openUrl(context, 'https://demakkab.bps.go.id'),
                   ),
                   const Divider(height: 18),
                   _buildContactTile(
@@ -223,7 +242,7 @@ class AboutPage extends StatelessWidget {
                     title: 'Email Resmi',
                     subtitle: 'bps3321@bps.go.id',
                     actionLabel: 'Kirim Email',
-                    onTap: () => _openUrl('mailto:bps3321@bps.go.id'),
+                    onTap: () => _openUrl(context, 'mailto:bps3321@bps.go.id'),
                   ),
                   const Divider(height: 18),
                   _buildContactTile(
@@ -231,7 +250,10 @@ class AboutPage extends StatelessWidget {
                     title: 'Portal PPID BPS Demak',
                     subtitle: 'Layanan Permohonan Informasi Publik Terpadu',
                     actionLabel: 'Buka Portal',
-                    onTap: () => _openUrl('https://ppid.bps.go.id/app/konten/3321/Profil-BPS.html'),
+                    onTap: () => _openUrl(
+                      context,
+                      'https://ppid.bps.go.id/app/konten/3321/Profil-BPS.html',
+                    ),
                   ),
                 ],
               ),
@@ -251,7 +273,10 @@ class AboutPage extends StatelessWidget {
                       subtitle: '@bpskabdemak',
                       icon: Icons.camera_alt_rounded,
                       color: const Color(0xFFE1306C),
-                      onTap: () => _openUrl('https://instagram.com/bpskabdemak'),
+                      onTap: () => _openUrl(
+                        context,
+                        'https://www.instagram.com/bpskabdemak/',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -261,7 +286,10 @@ class AboutPage extends StatelessWidget {
                       subtitle: 'BPS Kab. Demak',
                       icon: Icons.play_circle_fill_rounded,
                       color: const Color(0xFFFF0000),
-                      onTap: () => _openUrl('https://www.youtube.com/@bpskabupatendemak'),
+                      onTap: () => _openUrl(
+                        context,
+                        'https://www.youtube.com/@bpskabupatendemak',
+                      ),
                     ),
                   ),
                 ],

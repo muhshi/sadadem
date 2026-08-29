@@ -77,7 +77,7 @@ class ApiConfig {
     if (configured != null && configured.trim().isNotEmpty) {
       return configured.trim().replaceAll(RegExp(r'/+$'), '');
     }
-    return 'http://127.0.0.1:8000/api/v1';
+    return 'https://demakai.bpsdemak.com/api/v1';
   }
 
   /// Search endpoint URL (`GET /search?q=...&type=...&limit=...`).
@@ -108,6 +108,9 @@ class ApiConfig {
 
   /// Sync bundle download URL (`GET /sync/bundle`).
   static String get kbliSyncBundleUrl => '$kbliBaseUrl/sync/bundle';
+
+  /// AI Model embedding download URL (`GET /sync/model`).
+  static String get kbliModelDownloadUrl => '$kbliBaseUrl/sync/model';
 
   /// Single submission endpoint URL (`POST /submissions`).
   static String get kbliSubmissionUrl => '$kbliBaseUrl/submissions';

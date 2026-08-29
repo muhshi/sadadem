@@ -324,8 +324,13 @@ class _KbliSyncPageState extends State<KbliSyncPage> {
                   const Divider(height: 24),
                   if (_serverSyncInfo != null) ...[
                     _buildInfoRow('Versi Server', _serverSyncInfo!['version']?.toString() ?? '-'),
-                    _buildInfoRow('Ukuran Download', '${_serverSyncInfo!['file_size_mb'] ?? 14.2} MB'),
+                    _buildInfoRow('Ukuran Download', '${_serverSyncInfo!['file_size_mb'] ?? 14.23} MB'),
                     _buildInfoRow('Total KBLI + KBJI', '${(_serverSyncInfo!['kbli_count'] ?? 1569) + (_serverSyncInfo!['kbji_count'] ?? 2735)} entri'),
+                    if (_serverSyncInfo!['sha256'] != null)
+                      _buildInfoRow(
+                        'Checksum SHA-256',
+                        '${_serverSyncInfo!['sha256'].toString().substring(0, 10)}...',
+                      ),
                   ] else ...[
                     Text(
                       _isCheckingServer

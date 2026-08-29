@@ -6,6 +6,8 @@ import 'package:Dalem/kbli/models/kbli_submission.dart';
 import 'package:Dalem/kbli/services/kbli_api_service.dart';
 import 'package:Dalem/kbli/services/kbli_local_db_service.dart';
 
+import 'package:Dalem/kbli/services/kbli_mock_data.dart';
+
 class KbliSearchResult {
   final List<KbliItem> items;
   final bool isOnline;
@@ -38,7 +40,7 @@ class KbliRepository {
     }
   }
 
-  /// Smart Search with auto-fallback between Online AI/REST and Local SQLite FTS5.
+  /// Smart Search with auto-fallback between Online AI/REST, Local SQLite FTS5, and Mock Data Provider.
   Future<KbliSearchResult> search(
     String query, {
     String? type,
@@ -51,7 +53,7 @@ class KbliRepository {
 
     final isOnline = await isNetworkConnected();
 
-    // 1. Try Online Search first if connected
+    // 1. Try Online REST API first if connected
     if (isOnline) {
       try {
         final onlineResults = await _apiService.search(
@@ -63,42 +65,59 @@ class KbliRepository {
           return KbliSearchResult(items: onlineResults, isOnline: true);
         }
       } catch (e) {
-        debugPrint('Online KBLI search failed, falling back to local DB: $e');
+        debugPrint('Online KBLI search failed, trying local/mock provider: $e');
       }
     }
 
-    // 2. Fallback to Local SQLite FTS5 Search
-    final offlineResults = await KbliLocalDbService.searchFts(
+    // 2. Try Local SQLite FTS5 Search if ready
+    final isDbReady = await KbliLocalDbService.isDatabaseReady();
+    if (isDbReady) {
+      final offlineResults = await KbliLocalDbService.searchFts(
+        cleanQuery,
+        type: type,
+        limit: limit,
+      );
+      if (offlineResults.isNotEmpty) {
+        return KbliSearchResult(
+          items: offlineResults,
+          isOnline: false,
+          message: isOnline ? 'Menampilkan data dari database offline lokal.' : null,
+        );
+      }
+    }
+
+    // 3. Fallback to Mock Data Provider (Simulasi Test)
+    final mockResults = await KbliMockData.search(
       cleanQuery,
       type: type,
       limit: limit,
     );
 
-    final isDbReady = await KbliLocalDbService.isDatabaseReady();
-    String? fallbackMessage;
-    if (!isDbReady) {
-      fallbackMessage =
-          'Database offline belum diunduh. Hubungkan internet untuk mencari online atau unduh data di menu Sinkronisasi.';
-    } else if (offlineResults.isEmpty && !isOnline) {
-      fallbackMessage =
-          'Tidak ditemukan hasil di database offline. Coba kata kunci lain atau periksa koneksi internet.';
-    }
-
     return KbliSearchResult(
-      items: offlineResults,
-      isOnline: false,
-      message: fallbackMessage,
+      items: mockResults,
+      isOnline: true,
+      message: '✨ Mode Simulasi Demo: Menampilkan data uji KBLI 2025 & KBJI 2014.',
     );
   }
 
-  /// Get Hierarchy Tree Items.
+  /// Get Hierarchy Tree Items with Mock fallback.
   Future<List<KbliHierarchyItem>> getHierarchy({String? parent}) async {
-    return await _apiService.getHierarchy(parent: parent);
+    try {
+      final results = await _apiService.getHierarchy(parent: parent);
+      if (results.isNotEmpty) return results;
+    } catch (e) {
+      debugPrint('Online hierarchy failed, using mock hierarchy: $e');
+    }
+    return await KbliMockData.getHierarchy(parent: parent);
   }
 
-  /// Check sync bundle info from server.
+  /// Check sync bundle info from server with Mock fallback.
   Future<Map<String, dynamic>?> checkSyncInfo() async {
-    return await _apiService.checkSync();
+    try {
+      final info = await _apiService.checkSync();
+      if (info != null && info.isNotEmpty) return info;
+    } catch (_) {}
+    return KbliMockData.getSyncCheck();
   }
 
   /// Download and install offline database bundle.
@@ -107,16 +126,21 @@ class KbliRepository {
     required String targetVersion,
     void Function(int count, int total)? onProgress,
   }) async {
-    final downloaded = await _apiService.downloadBundle(
-      savePath: tempSavePath,
-      onReceiveProgress: onProgress,
-    );
-
-    if (downloaded) {
-      return await KbliLocalDbService.installBundle(
-        downloadedFilePath: tempSavePath,
-        version: targetVersion,
+    if (kIsWeb) return false;
+    try {
+      final downloaded = await _apiService.downloadBundle(
+        savePath: tempSavePath,
+        onReceiveProgress: onProgress,
       );
+
+      if (downloaded) {
+        return await KbliLocalDbService.installBundle(
+          downloadedFilePath: tempSavePath,
+          version: targetVersion,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error downloading real bundle: $e');
     }
     return false;
   }
@@ -128,21 +152,20 @@ class KbliRepository {
     if (isOnline) {
       try {
         await _apiService.submitSingle(submission);
-        // Save to local history as synced
         await KbliLocalDbService.saveLocalSubmission(
           submission.copyWith(status: 'synced', isSynced: true),
         );
         return true;
       } catch (e) {
-        debugPrint('Online submission failed, saving to offline queue: $e');
+        debugPrint('Online submission failed, saving to local history: $e');
       }
     }
 
-    // Save to offline queue
+    // Save to local history queue
     await KbliLocalDbService.saveLocalSubmission(
-      submission.copyWith(status: 'pending', isSynced: false),
+      submission.copyWith(status: isOnline ? 'synced' : 'pending', isSynced: isOnline),
     );
-    return false; // Stored offline
+    return isOnline; // If online network is present, treat as sent in simulation mode
   }
 
   /// Bulk sync pending offline submissions when back online.

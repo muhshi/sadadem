@@ -106,6 +106,23 @@ class KbliApiService {
     return response.statusCode == 200;
   }
 
+  /// Download the on-device AI model embedding bundle (`GET /sync/model`).
+  Future<bool> downloadModel({
+    required String savePath,
+    void Function(int count, int total)? onReceiveProgress,
+  }) async {
+    final response = await _dio.download(
+      '/sync/model',
+      savePath,
+      onReceiveProgress: onReceiveProgress,
+      options: Options(
+        responseType: ResponseType.bytes,
+        followRedirects: true,
+      ),
+    );
+    return response.statusCode == 200;
+  }
+
   /// Submit a single crowdsourcing example (`POST /submissions`).
   Future<Map<String, dynamic>> submitSingle(KbliSubmission submission) async {
     final response = await _dio.post(

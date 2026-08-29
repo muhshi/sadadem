@@ -66,4 +66,53 @@ class ApiConfig {
     final wilayah = '${domain}000';
     return '$baseUrl/interoperabilitas/datasource/simdasi/id/$id/tahun/$targetTahun/id_tabel/$idTabel/wilayah/$wilayah/key/$apiKey';
   }
+
+  // ==========================================
+  // PINTAR KBLI API (Sensus Ekonomi 2026)
+  // ==========================================
+
+  /// Base URL for PINTAR KBLI API.
+  static String get kbliBaseUrl {
+    final configured = dotenv.env['KBLI_API_BASE_URL'];
+    if (configured != null && configured.trim().isNotEmpty) {
+      return configured.trim().replaceAll(RegExp(r'/+$'), '');
+    }
+    return 'http://127.0.0.1:8000/api/v1';
+  }
+
+  /// Search endpoint URL (`GET /search?q=...&type=...&limit=...`).
+  static String kbliSearchUrl({
+    required String query,
+    String? type,
+    int limit = 15,
+  }) {
+    final encodedQuery = Uri.encodeComponent(query);
+    var url = '$kbliBaseUrl/search?q=$encodedQuery&limit=$limit';
+    if (type != null && type.isNotEmpty && type != 'ALL') {
+      url += '&type=${Uri.encodeComponent(type)}';
+    }
+    return url;
+  }
+
+  /// Hierarchy exploration URL (`GET /kbli/hierarchy?parent=...`).
+  static String kbliHierarchyUrl({String? parent}) {
+    var url = '$kbliBaseUrl/kbli/hierarchy';
+    if (parent != null && parent.isNotEmpty) {
+      url += '?parent=${Uri.encodeComponent(parent)}';
+    }
+    return url;
+  }
+
+  /// Sync check endpoint URL (`GET /sync/check`).
+  static String get kbliSyncCheckUrl => '$kbliBaseUrl/sync/check';
+
+  /// Sync bundle download URL (`GET /sync/bundle`).
+  static String get kbliSyncBundleUrl => '$kbliBaseUrl/sync/bundle';
+
+  /// Single submission endpoint URL (`POST /submissions`).
+  static String get kbliSubmissionUrl => '$kbliBaseUrl/submissions';
+
+  /// Bulk sync submissions endpoint URL (`POST /submissions/bulk-sync`).
+  static String get kbliBulkSyncUrl => '$kbliBaseUrl/submissions/bulk-sync';
 }
+

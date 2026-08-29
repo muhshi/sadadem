@@ -78,9 +78,9 @@ class BottomNav extends StatelessWidget {
               label: 'Beranda',
             ),
             NavigationDestination(
-              icon: Icon(Icons.search_rounded),
-              selectedIcon: Icon(Icons.search_rounded),
-              label: 'Cari',
+              icon: Icon(Icons.category_outlined),
+              selectedIcon: Icon(Icons.category_rounded),
+              label: 'KBLI',
             ),
             NavigationDestination(
               icon: Icon(Icons.menu_book_outlined),

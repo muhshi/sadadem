@@ -23,7 +23,7 @@ class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
     required this.autofocus,
-    this.showBottomNav = true,
+    this.showBottomNav = false,
     this.initialQuery,
   });
 

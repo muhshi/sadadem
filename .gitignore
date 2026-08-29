@@ -1,6 +1,7 @@
 # Miscellaneous
 *.class
 .env
+flutter_integration_guide.md
 *.log
 *.pyc
 *.swp

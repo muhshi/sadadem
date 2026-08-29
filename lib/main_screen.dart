@@ -4,6 +4,7 @@ import 'package:Dalem/subject/homepage.dart';
 import 'package:Dalem/model/search_page.dart';
 import 'package:Dalem/publikasi/publikasi.dart';
 import 'package:Dalem/model/download.dart';
+import 'package:Dalem/kbli/kbli_main_page.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
@@ -19,7 +20,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = const [
     Homepage(showBottomNav: false),
-    SearchPage(autofocus: false, showBottomNav: false),
+    KbliMainPage(showBottomNav: false),
     Publikasi(showBottomNav: false),
     DownloadedPublicationsPage(showBottomNav: false),
   ];

@@ -63,126 +63,139 @@ class PdfViewerPageState extends State<PdfViewerPage> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          if (!_hasError)
-            SfPdfViewerTheme(
-              data: const SfPdfViewerThemeData(
-                backgroundColor: AppColors.backgroundScaffold,
-              ),
-              child: widget.filePath != null
-                  ? SfPdfViewer.file(
-                      File(widget.filePath!),
-                      key: _viewerKey,
-                      controller: _pdfViewerController,
-                      canShowScrollHead: true,
-                      canShowScrollStatus: true,
-                      canShowPaginationDialog: false,
-                      enableDoubleTapZooming: true,
-                      onDocumentLoaded: (details) {
-                        if (mounted) {
-                          setState(() => _isLoading = false);
-                        }
-                      },
-                      onDocumentLoadFailed: _handleLoadFailed,
-                    )
-                  : SfPdfViewer.network(
-                      widget.url!,
-                      key: _viewerKey,
-                      controller: _pdfViewerController,
-                      canShowScrollHead: true,
-                      canShowScrollStatus: true,
-                      canShowPaginationDialog: false,
-                      enableDoubleTapZooming: true,
-                      onDocumentLoaded: (details) {
-                        if (mounted) {
-                          setState(() => _isLoading = false);
-                        }
-                      },
-                      onDocumentLoadFailed: _handleLoadFailed,
+      body: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (!_hasError)
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: SfPdfViewerTheme(
+                    data: const SfPdfViewerThemeData(
+                      backgroundColor: AppColors.backgroundScaffold,
                     ),
-            ),
-
-          // Loading Overlay
-          if (_isLoading && !_hasError)
-            Container(
-              color: AppColors.backgroundScaffold,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      color: AppColors.primaryNavy,
-                      strokeWidth: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Memuat Dokumen PDF...',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
+                    child: widget.filePath != null
+                        ? SfPdfViewer.file(
+                            File(widget.filePath!),
+                            key: _viewerKey,
+                            controller: _pdfViewerController,
+                            canShowScrollHead: false, // Prevents RenderTransform hasSize layout bug
+                            canShowScrollStatus: false, // Prevents RenderTransform hasSize layout bug
+                            canShowPaginationDialog: false,
+                            enableDoubleTapZooming: true,
+                            enableTextSelection: true,
+                            onDocumentLoaded: (details) {
+                              if (mounted) {
+                                setState(() => _isLoading = false);
+                              }
+                            },
+                            onDocumentLoadFailed: _handleLoadFailed,
+                          )
+                        : SfPdfViewer.network(
+                            widget.url!,
+                            key: _viewerKey,
+                            controller: _pdfViewerController,
+                            canShowScrollHead: false, // Prevents RenderTransform hasSize layout bug
+                            canShowScrollStatus: false, // Prevents RenderTransform hasSize layout bug
+                            canShowPaginationDialog: false,
+                            enableDoubleTapZooming: true,
+                            enableTextSelection: true,
+                            onDocumentLoaded: (details) {
+                              if (mounted) {
+                                setState(() => _isLoading = false);
+                              }
+                            },
+                            onDocumentLoadFailed: _handleLoadFailed,
+                          ),
+                  ),
                 ),
               ),
-            ),
 
-          // Error State
-          if (_hasError)
-            Container(
-              color: AppColors.backgroundScaffold,
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline_rounded,
-                      size: 56,
-                      color: AppColors.accentRose,
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Gagal Membuka PDF',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _errorMessage.isNotEmpty
-                          ? _errorMessage
-                          : 'Terjadi kesalahan saat mengunduh atau membaca file PDF.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.5,
-                        color: AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryNavy,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+            // Loading Overlay
+            if (_isLoading && !_hasError)
+              Positioned.fill(
+                child: Container(
+                  color: AppColors.backgroundScaffold,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          color: AppColors.primaryNavy,
+                          strokeWidth: 3,
                         ),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Coba Lagi'),
-                      onPressed: _reloadPdf,
+                        const SizedBox(height: 16),
+                        Text(
+                          'Memuat Dokumen PDF...',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-        ],
+
+            // Error State
+            if (_hasError)
+              Positioned.fill(
+                child: Container(
+                  color: AppColors.backgroundScaffold,
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 56,
+                          color: AppColors.accentRose,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Gagal Membuka PDF',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _errorMessage.isNotEmpty
+                              ? _errorMessage
+                              : 'Terjadi kesalahan saat mengunduh atau membaca file PDF.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.5,
+                            color: AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryNavy,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Coba Lagi'),
+                          onPressed: _reloadPdf,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

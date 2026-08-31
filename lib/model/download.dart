@@ -159,20 +159,7 @@ class DownloadedPublicationsPageState
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return PopScope(
-      canPop: Navigator.canPop(context),
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(initialIndex: 0),
-            ),
-            (route) => false,
-          );
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: AppColors.backgroundScaffold,
         appBar: AppBar2(
           title: 'File Unduhan',
@@ -403,7 +390,6 @@ class DownloadedPublicationsPageState
       bottomNavigationBar: widget.showBottomNav
           ? const BottomNav(currentIndex: 3)
           : null,
-      ),
     );
   }
 

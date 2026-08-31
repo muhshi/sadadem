@@ -57,21 +57,8 @@ class PublikasiState extends State<Publikasi>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return PopScope(
-      canPop: Navigator.canPop(context),
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(initialIndex: 0),
-            ),
-            (route) => false,
-          );
-        }
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.backgroundScaffold,
+    return Scaffold(
+      backgroundColor: AppColors.backgroundScaffold,
         appBar: const AppBar2(
           title: 'Publikasi & Media Rilis',
           showBackButton: false,
@@ -136,8 +123,7 @@ class PublikasiState extends State<Publikasi>
         bottomNavigationBar: widget.showBottomNav
             ? const BottomNav(currentIndex: 2)
             : null,
-      ),
-    );
+      );
   }
 
   Widget _buildPublicationsSection() {

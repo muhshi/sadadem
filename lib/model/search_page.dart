@@ -286,24 +286,11 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: Navigator.canPop(context),
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(initialIndex: 0),
-            ),
-            (route) => false,
-          );
-        }
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.backgroundScaffold,
-        appBar: const AppBar2(
-          title: 'Pencarian Data',
-        ),
+    return Scaffold(
+      backgroundColor: AppColors.backgroundScaffold,
+      appBar: const AppBar2(
+        title: 'Pencarian Data',
+      ),
         body: Column(
           children: [
             // Premium Modern Search Bar
@@ -472,8 +459,7 @@ class _SearchPageState extends State<SearchPage> {
         bottomNavigationBar: widget.showBottomNav
             ? const BottomNav(currentIndex: 1)
             : null,
-      ),
-    );
+      );
   }
 
   Widget _buildFilterChip(String label, int count) {

@@ -47,23 +47,9 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          children: _pages.asMap().entries.map((entry) {
-            final index = entry.key;
-            final page = entry.value;
-            final isSelected = index == _currentIndex;
-
-            return IgnorePointer(
-              ignoring: !isSelected,
-              child: AnimatedOpacity(
-                opacity: isSelected ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                child: page,
-              ),
-            );
-          }).toList(),
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
         ),
         bottomNavigationBar: BottomNav(
           currentIndex: _currentIndex,

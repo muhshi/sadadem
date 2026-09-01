@@ -33,6 +33,10 @@ class DataTableScreenState extends State<DataTableScreen> {
   late Future<Map<String, dynamic>> futureDataTable;
   late int selectedYear;
 
+  /// For dynamic table (type 2): track which tahun indices are selected.
+  /// null means "all available" (initial state before user interacts).
+  Set<int>? _selectedDynamicYearIndices;
+
   List<int> get _availableYears {
     final currentYear = DateTime.now().year;
     final minYear = (currentYear - 3 < 2023) ? 2023 : (currentYear - 3);
@@ -236,6 +240,303 @@ class DataTableScreenState extends State<DataTableScreen> {
     );
   }
 
+  /// Build year selector for dynamic tables (tableType 2).
+  /// [availableYears] is the list of tahun maps from the API response.
+  Widget _buildDynamicYearSelector(List<Map<String, dynamic>> availableYears) {
+    if (availableYears.isEmpty) return const SizedBox.shrink();
+
+    // Default: all selected
+    final selectedIndices = _selectedDynamicYearIndices ??
+        Set<int>.from(List.generate(availableYears.length, (i) => i));
+
+    final isSingleYear = availableYears.length == 1;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.primaryNavy),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Pilih Tahun Data:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              if (!isSingleYear)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (selectedIndices.length == availableYears.length) {
+                        // If all selected, select only the last one (most recent)
+                        _selectedDynamicYearIndices = {availableYears.length - 1};
+                      } else {
+                        // Select all
+                        _selectedDynamicYearIndices = Set<int>.from(
+                            List.generate(availableYears.length, (i) => i));
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: selectedIndices.length == availableYears.length
+                          ? AppColors.primaryNavy.withValues(alpha: 0.1)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      selectedIndices.length == availableYears.length ? 'Semua ✓' : 'Pilih Semua',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: selectedIndices.length == availableYears.length
+                            ? AppColors.primaryNavy
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(availableYears.length, (index) {
+              final yearItem = availableYears[index];
+              final label = yearItem['label']?.toString() ?? '';
+              final isSelected = selectedIndices.contains(index);
+              return InkWell(
+                onTap: isSingleYear
+                    ? null
+                    : () {
+                        setState(() {
+                          final newSet = Set<int>.from(selectedIndices);
+                          if (isSelected) {
+                            if (newSet.length > 1) {
+                              newSet.remove(index);
+                            }
+                          } else {
+                            newSet.add(index);
+                          }
+                          _selectedDynamicYearIndices = newSet;
+                        });
+                      },
+                borderRadius: BorderRadius.circular(10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                          )
+                        : null,
+                    color: isSelected ? null : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        const Icon(Icons.check_circle_rounded, size: 14, color: Colors.white),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        label,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                          color: isSelected ? Colors.white : const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build year badge for static tables (tableType 1).
+  Widget _buildStaticYearBadge(String title, String? updtDate) {
+    // Extract 4-digit years from title or update date
+    final yearMatches = RegExp(r'\b(20\d{2})\b').allMatches(title).map((m) => m.group(1)!).toSet().toList();
+    if (yearMatches.isEmpty && updtDate != null) {
+      final updtMatch = RegExp(r'\b(20\d{2})\b').firstMatch(updtDate);
+      if (updtMatch != null) {
+        yearMatches.add(updtMatch.group(1)!);
+      }
+    }
+    if (yearMatches.isEmpty) {
+      yearMatches.add('${DateTime.now().year}');
+    }
+    yearMatches.sort();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.primaryNavy),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tahun Data Tersedia:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Tabel Statis',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: yearMatches.map((yearStr) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_rounded, size: 14, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      yearStr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper to extract tahun from API data and build the year selector widget list.
+  List<Widget> _buildDynamicYearSelectorFromData(Map<String, dynamic> data) {
+    final rawTahun = (data['tahun'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final activeTahun = _getActiveTahun(rawTahun);
+    if (activeTahun.isEmpty) return [];
+    return [_buildDynamicYearSelector(activeTahun)];
+  }
+
+  /// Get filtered tahun for dynamic tables based on user selection.
+  List<Map<String, dynamic>>? _getFilteredDynamicTahun(Map<String, dynamic> data) {
+    final rawTahun = (data['tahun'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final activeTahun = _getActiveTahun(rawTahun);
+    if (_selectedDynamicYearIndices != null && activeTahun.isNotEmpty) {
+      final filtered = _selectedDynamicYearIndices!
+          .where((i) => i < activeTahun.length)
+          .map((i) => activeTahun[i])
+          .toList();
+      return filtered.isNotEmpty ? filtered : activeTahun;
+    }
+    return null;
+  }
+
   String _colorToHex(Color c) {
     final r = (c.r * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0');
     final g = (c.g * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0');
@@ -304,7 +605,29 @@ class DataTableScreenState extends State<DataTableScreen> {
       final colData = entry.value as Map<String, dynamic>? ?? {};
       final colName = colData['nama_variabel']?.toString() ?? entry.key;
       final rawSatuan = colData['satuan']?.toString() ?? '';
-      final satuan = rawSatuan.isNotEmpty ? ' ($rawSatuan)' : '';
+      final rawMultiplier = colData['unit_multiplier_desc']?.toString() ?? '';
+      final rawUnit = colData['unit']?.toString() ?? '';
+
+      String unitText = '';
+      if (rawMultiplier.isNotEmpty && rawMultiplier != 'null' && rawMultiplier != '-') {
+        if (rawSatuan.isNotEmpty && rawSatuan != 'null' && rawSatuan != '-') {
+          unitText = '$rawMultiplier $rawSatuan';
+        } else {
+          unitText = rawMultiplier;
+        }
+      } else if (rawSatuan.isNotEmpty && rawSatuan != 'null' && rawSatuan != '-') {
+        unitText = rawSatuan;
+      } else if (rawUnit.isNotEmpty && rawUnit != 'null' && rawUnit != '-') {
+        unitText = rawUnit;
+      }
+
+      String satuan = '';
+      if (unitText.isNotEmpty) {
+        if (!colName.toLowerCase().contains(unitText.toLowerCase())) {
+          satuan = ' ($unitText)';
+        }
+      }
+
       html +=
           '<th style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">$colName$satuan</th>';
     }
@@ -368,7 +691,28 @@ class DataTableScreenState extends State<DataTableScreen> {
       final colData = entry.value as Map<String, dynamic>? ?? {};
       final colName = colData['nama_variabel']?.toString() ?? entry.key;
       final rawSatuan = colData['satuan']?.toString() ?? '';
-      final satuan = rawSatuan.isNotEmpty ? ' ($rawSatuan)' : '';
+      final rawMultiplier = colData['unit_multiplier_desc']?.toString() ?? '';
+      final rawUnit = colData['unit']?.toString() ?? '';
+
+      String unitText = '';
+      if (rawMultiplier.isNotEmpty && rawMultiplier != 'null' && rawMultiplier != '-') {
+        if (rawSatuan.isNotEmpty && rawSatuan != 'null' && rawSatuan != '-') {
+          unitText = '$rawMultiplier $rawSatuan';
+        } else {
+          unitText = rawMultiplier;
+        }
+      } else if (rawSatuan.isNotEmpty && rawSatuan != 'null' && rawSatuan != '-') {
+        unitText = rawSatuan;
+      } else if (rawUnit.isNotEmpty && rawUnit != 'null' && rawUnit != '-') {
+        unitText = rawUnit;
+      }
+
+      String satuan = '';
+      if (unitText.isNotEmpty) {
+        if (!colName.toLowerCase().contains(unitText.toLowerCase())) {
+          satuan = ' ($unitText)';
+        }
+      }
       header.add('$colName$satuan');
     }
     csvData.add(header);
@@ -396,7 +740,7 @@ class DataTableScreenState extends State<DataTableScreen> {
     return const ListToCsvConverter().convert(csvData);
   }
 
-  String generateHtmlTable(Map<String, dynamic> data) {
+  String generateHtmlTable(Map<String, dynamic> data, {List<Map<String, dynamic>>? filteredTahun}) {
     final headerBg = _colorToHex(AppColors.primaryNavy);
     final headerBorder = _colorToHex(AppColors.primaryDark);
 
@@ -410,7 +754,7 @@ class DataTableScreenState extends State<DataTableScreen> {
         (data["datacontent"] as Map?)?.cast<String, dynamic>() ?? {};
     final rawTahun =
         (data["tahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
-    final tahun = _getActiveTahun(rawTahun);
+    final tahun = filteredTahun ?? _getActiveTahun(rawTahun);
     final turTahun =
         (data["turtahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
             [];
@@ -431,8 +775,19 @@ class DataTableScreenState extends State<DataTableScreen> {
 
     for (var varItem in varData) {
       final colSpan = tahun.length * (turvarData.isNotEmpty ? turvarData.length : 1);
+      final label = varItem['label']?.toString() ?? '';
+      final rawUnit = varItem['unit']?.toString() ?? varItem['satuan']?.toString() ?? '';
+      String unitStr = '';
+      if (rawUnit.isNotEmpty &&
+          rawUnit != 'null' &&
+          rawUnit != '-' &&
+          rawUnit.toLowerCase() != 'tidak ada') {
+        if (!label.toLowerCase().contains(rawUnit.toLowerCase())) {
+          unitStr = ' ($rawUnit)';
+        }
+      }
       html +=
-          '<th colspan="$colSpan" style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">${varItem['label']}</th>';
+          '<th colspan="$colSpan" style="border: 1px solid $headerBorder; padding: 10px 12px; text-align: center; font-weight: 700;">$label$unitStr</th>';
     }
     html +=
         '</tr><tr style="background-color: $headerBg; color: white;">';
@@ -496,7 +851,7 @@ class DataTableScreenState extends State<DataTableScreen> {
     return html;
   }
 
-  String generateCsv(Map<String, dynamic> data) {
+  String generateCsv(Map<String, dynamic> data, {List<Map<String, dynamic>>? filteredTahun}) {
     final varData =
         (data["var"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final vervarData =
@@ -507,7 +862,7 @@ class DataTableScreenState extends State<DataTableScreen> {
         (data["datacontent"] as Map?)?.cast<String, dynamic>() ?? {};
     final rawTahun =
         (data["tahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
-    final tahun = _getActiveTahun(rawTahun);
+    final tahun = filteredTahun ?? _getActiveTahun(rawTahun);
     final turTahun =
         (data["turtahun"] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
             [];
@@ -519,7 +874,18 @@ class DataTableScreenState extends State<DataTableScreen> {
     List<String> header1 = [''];
     for (var varItem in varData) {
       final count = tahun.length * (turvarData.isNotEmpty ? turvarData.length : 1);
-      header1.addAll(List.filled(count, varItem['label']?.toString() ?? ''));
+      final label = varItem['label']?.toString() ?? '';
+      final rawUnit = varItem['unit']?.toString() ?? varItem['satuan']?.toString() ?? '';
+      String unitStr = '';
+      if (rawUnit.isNotEmpty &&
+          rawUnit != 'null' &&
+          rawUnit != '-' &&
+          rawUnit.toLowerCase() != 'tidak ada') {
+        if (!label.toLowerCase().contains(rawUnit.toLowerCase())) {
+          unitStr = ' ($rawUnit)';
+        }
+      }
+      header1.addAll(List.filled(count, '$label$unitStr'));
     }
     csvData.add(header1);
 
@@ -753,7 +1119,7 @@ class DataTableScreenState extends State<DataTableScreen> {
                   (dataContent is Map && dataContent.isEmpty)) {
                 isDataAvailable = false;
               } else {
-                tableHtml = generateHtmlTable(data);
+                tableHtml = generateHtmlTable(data, filteredTahun: _getFilteredDynamicTahun(data));
               }
             }
 
@@ -764,6 +1130,8 @@ class DataTableScreenState extends State<DataTableScreen> {
                 child: Column(
                   children: [
                     if (widget.tableType == '3') _buildYearSelector(),
+                  if (widget.tableType == '2') ..._buildDynamicYearSelectorFromData(data),
+                  if (widget.tableType == '1') _buildStaticYearBadge(widget.title, (data['data'] as Map?)?['updt_date']?.toString()),
                     const SizedBox(height: 32),
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -809,6 +1177,8 @@ class DataTableScreenState extends State<DataTableScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (widget.tableType == '3') _buildYearSelector(),
+                  if (widget.tableType == '2') ..._buildDynamicYearSelectorFromData(data),
+                  if (widget.tableType == '1') _buildStaticYearBadge(widget.title, (data['data'] as Map?)?['updt_date']?.toString()),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -955,7 +1325,7 @@ class DataTableScreenState extends State<DataTableScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           ),
                           onPressed: () async {
-                            final csv = generateCsv(data);
+                            final csv = generateCsv(data, filteredTahun: _getFilteredDynamicTahun(data));
                             await downloadCsv(csv);
                           },
                           icon: const Icon(Icons.download_rounded, color: Colors.white),

@@ -82,8 +82,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.campaign_rounded,
+                                Icon(
+                                  BpsTheme.current().badgeIcon,
                                   size: 12,
                                   color: Colors.white,
                                 ),

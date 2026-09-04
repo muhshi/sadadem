@@ -157,7 +157,7 @@ class AboutPage extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.campaign_rounded,
+                            Icon(theme.badgeIcon,
                                 size: 14, color: Colors.white),
                             const SizedBox(width: 5),
                             Text(

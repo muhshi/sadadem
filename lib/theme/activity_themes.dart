@@ -71,6 +71,7 @@ class ActivityThemes {
     activity: BpsActivity.defaultBps,
     activityName: 'BPS Kabupaten Demak',
     shortBadge: 'BPS Demak',
+    badgeIcon: Icons.verified_rounded,
     primary: Color(0xFF002B6A),
     primaryLight: Color(0xFF1A5FAF),
     primaryDark: Color(0xFF001F4E),
@@ -89,6 +90,6 @@ class ActivityThemes {
   };
 
   static ActivityTheme getTheme(BpsActivity activity) {
-    return allThemes[activity] ?? sensusEkonomi2026;
+    return allThemes[activity] ?? defaultBps;
   }
 }

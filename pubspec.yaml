@@ -65,6 +65,7 @@ dependencies:
   connectivity_plus: ^6.1.0
   archive: ^4.0.2
   path: ^1.9.0
+  fl_chart: ^1.2.0
 
 
 dev_dependencies:

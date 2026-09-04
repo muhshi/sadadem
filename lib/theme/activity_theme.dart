@@ -11,6 +11,7 @@ class ActivityTheme {
   final Color secondary;
   final String? logo;
   final String? description;
+  final IconData badgeIcon;
 
   // Multi-color category card gradients (Harmonious BPS trio: Blue, Green, Orange)
   final List<Color> cardGradient1; // Data Strategis (Deep Navy/Blue)
@@ -30,6 +31,7 @@ class ActivityTheme {
     required this.cardGradient2,
     required this.cardGradient3,
     required this.cardGradient4,
+    this.badgeIcon = Icons.campaign_rounded,
     this.logo,
     this.description,
   });

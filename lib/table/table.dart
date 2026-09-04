@@ -12,6 +12,8 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/config/api_config.dart';
+import 'package:Dalem/charts/chart_data_parser.dart';
+import 'package:Dalem/charts/interactive_chart_view.dart';
 
 class DataTableScreen extends StatefulWidget {
   final String id;
@@ -32,6 +34,9 @@ class DataTableScreen extends StatefulWidget {
 class DataTableScreenState extends State<DataTableScreen> {
   late Future<Map<String, dynamic>> futureDataTable;
   late int selectedYear;
+
+  /// View mode: 0 for Table (Tabel), 1 for Interactive Chart (Grafik)
+  int _selectedViewMode = 0;
 
   /// For dynamic table (type 2): track which tahun indices are selected.
   /// null means "all available" (initial state before user interacts).
@@ -123,6 +128,128 @@ class DataTableScreenState extends State<DataTableScreen> {
     } else {
       throw Exception('Tipe tabel tidak dikenali');
     }
+  }
+
+  Widget _buildViewModeToggle() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFDBEAFE)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                if (_selectedViewMode != 0) {
+                  setState(() {
+                    _selectedViewMode = 0;
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  gradient: _selectedViewMode == 0
+                      ? LinearGradient(
+                          colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                        )
+                      : null,
+                  color: _selectedViewMode == 0 ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: _selectedViewMode == 0
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primaryNavy.withValues(alpha: 0.25),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.table_chart_rounded,
+                      size: 16,
+                      color: _selectedViewMode == 0 ? Colors.white : const Color(0xFF475569),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Tabel Data',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: _selectedViewMode == 0 ? FontWeight.w700 : FontWeight.w600,
+                        color: _selectedViewMode == 0 ? Colors.white : const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                if (_selectedViewMode != 1) {
+                  setState(() {
+                    _selectedViewMode = 1;
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  gradient: _selectedViewMode == 1
+                      ? LinearGradient(
+                          colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                        )
+                      : null,
+                  color: _selectedViewMode == 1 ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: _selectedViewMode == 1
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primaryNavy.withValues(alpha: 0.25),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.insights_rounded,
+                      size: 16,
+                      color: _selectedViewMode == 1 ? Colors.white : const Color(0xFF475569),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Grafik Interaktif',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: _selectedViewMode == 1 ? FontWeight.w700 : FontWeight.w600,
+                        color: _selectedViewMode == 1 ? Colors.white : const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildYearSelector() {
@@ -523,8 +650,8 @@ class DataTableScreenState extends State<DataTableScreen> {
     return [_buildDynamicYearSelector(activeTahun)];
   }
 
-  /// Get filtered tahun for dynamic tables based on user selection.
-  List<Map<String, dynamic>>? _getFilteredDynamicTahun(Map<String, dynamic> data) {
+  /// Get filtered tahun for dynamic tables based on user selection (defaults to activeTahun >= 2023).
+  List<Map<String, dynamic>> _getFilteredDynamicTahun(Map<String, dynamic> data) {
     final rawTahun = (data['tahun'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final activeTahun = _getActiveTahun(rawTahun);
     if (_selectedDynamicYearIndices != null && activeTahun.isNotEmpty) {
@@ -534,7 +661,7 @@ class DataTableScreenState extends State<DataTableScreen> {
           .toList();
       return filtered.isNotEmpty ? filtered : activeTahun;
     }
-    return null;
+    return activeTahun;
   }
 
   String _colorToHex(Color c) {
@@ -1170,176 +1297,209 @@ class DataTableScreenState extends State<DataTableScreen> {
               );
             }
 
+            // Parse series for interactive chart visualization
+            List<ChartSeries> chartSeries = [];
+            if (widget.tableType == '3' && simdasiTableObj != null) {
+              chartSeries = ChartDataParser.parseSimdasi(simdasiTableObj);
+            } else if (widget.tableType == '2') {
+              chartSeries = ChartDataParser.parseDynamic(
+                data,
+                filteredTahun: _getFilteredDynamicTahun(data),
+              );
+            } else if (widget.tableType == '1' && tableHtml.isNotEmpty) {
+              chartSeries = ChartDataParser.parseStaticHtml(tableHtml);
+            }
+
+            final bool hasChartData = chartSeries.isNotEmpty;
+            final activeViewMode = hasChartData ? _selectedViewMode : 0;
+
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. View Mode Switcher: [ Tabel Data ] | [ Grafik Interaktif ]
+                  // Only display toggle if valid chart series exists (Smart Adaptive UI)
+                  if (hasChartData) _buildViewModeToggle(),
+
                   if (widget.tableType == '3') _buildYearSelector(),
                   if (widget.tableType == '2') ..._buildDynamicYearSelectorFromData(data),
                   if (widget.tableType == '1') _buildStaticYearBadge(widget.title, (data['data'] as Map?)?['updt_date']?.toString()),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+
+                  if (activeViewMode == 1 && hasChartData) ...[
+                    InteractiveChartView(
+                      title: simdasiTableObj?['judul_tabel']?.toString() ?? widget.title,
+                      seriesList: chartSeries,
+                      subtitle: widget.tableType == '3'
+                          ? 'Tahun Data: $selectedYear • BPS Kab. Demak'
+                          : 'Sumber Data BPS Kabupaten Demak',
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          simdasiTableObj?['judul_tabel']?.toString() ?? widget.title,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A),
-                            height: 1.3,
+                  ] else ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: HtmlWidget(tableHtml),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Download button
-                  if (widget.tableType == '1' && staticExcelUrl != null && staticExcelUrl.isNotEmpty)
-                    Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryNavy.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                        ],
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            simdasiTableObj?['judul_tabel']?.toString() ?? widget.title,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
+                              height: 1.3,
                             ),
-                          ],
-                        ),
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           ),
-                          onPressed: () async {
-                            final uri = Uri.parse(staticExcelUrl!);
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                            } else {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Tidak dapat membuka link unduhan Excel.')),
-                                );
+                          const SizedBox(height: 14),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: HtmlWidget(tableHtml),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  // Download button (Table view mode only)
+                  if (activeViewMode == 0) ...[
+                    if (widget.tableType == '1' && staticExcelUrl != null && staticExcelUrl.isNotEmpty)
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            onPressed: () async {
+                              final uri = Uri.parse(staticExcelUrl!);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Tidak dapat membuka link unduhan Excel.')),
+                                  );
+                                }
                               }
-                            }
-                          },
-                          icon: const Icon(Icons.download_rounded, color: Colors.white),
-                          label: Text(
-                            'Unduh Tabel (.xls)',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                            },
+                            icon: const Icon(Icons.download_rounded, color: Colors.white),
+                            label: Text(
+                              'Unduh Tabel (.xls)',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (widget.tableType == '3' && simdasiTableObj != null)
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            onPressed: () async {
+                              final csv = generateSimdasiCsv(simdasiTableObj!);
+                              await downloadCsv(csv);
+                            },
+                            icon: const Icon(Icons.download_rounded, color: Colors.white),
+                            label: Text(
+                              'Unduh Tabel (.xls)',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (widget.tableType == '2' &&
+                        data["datacontent"] != null &&
+                        (data["datacontent"] is Map && (data["datacontent"] as Map).isNotEmpty))
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.primaryNavy, AppColors.primaryLight],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            onPressed: () async {
+                              final csv = generateCsv(data, filteredTahun: _getFilteredDynamicTahun(data));
+                              await downloadCsv(csv);
+                            },
+                            icon: const Icon(Icons.download_rounded, color: Colors.white),
+                            label: Text(
+                              'Unduh Tabel (.xls)',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    )
-                  else if (widget.tableType == '3' && simdasiTableObj != null)
-                    Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryNavy.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          ),
-                          onPressed: () async {
-                            final csv = generateSimdasiCsv(simdasiTableObj!);
-                            await downloadCsv(csv);
-                          },
-                          icon: const Icon(Icons.download_rounded, color: Colors.white),
-                          label: Text(
-                            'Unduh Tabel (.xls)',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (widget.tableType == '2' &&
-                      data["datacontent"] != null &&
-                      (data["datacontent"] is Map && (data["datacontent"] as Map).isNotEmpty))
-                    Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.primaryNavy, AppColors.primaryLight],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryNavy.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          ),
-                          onPressed: () async {
-                            final csv = generateCsv(data, filteredTahun: _getFilteredDynamicTahun(data));
-                            await downloadCsv(csv);
-                          },
-                          icon: const Icon(Icons.download_rounded, color: Colors.white),
-                          label: Text(
-                            'Unduh Tabel (.xls)',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  ],
                   const SizedBox(height: 24),
                   Center(
                     child: TextButton(

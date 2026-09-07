@@ -141,7 +141,7 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
                   ),
                 ],
 
-                // YoY Summary KPI Banner
+                // YoY Summary KPI Banner (only for temporal YoY growth metrics)
                 if (yoy != null) ...[
                   const SizedBox(height: 12),
                   _buildYoyBanner(yoy),
@@ -154,6 +154,40 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
                   height: 280,
                   child: _buildSelectedChart(series),
                 ),
+
+                // Touch guide hint when bottom titles are hidden (for dense regional/categorical data)
+                if (series.shouldHideBottomTitles) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.touch_app_rounded, size: 14, color: Color(0xFF64748B)),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'Ketuk grafik untuk melihat rincian (${series.points.length} data)',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF475569),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 12),
                 // Footer inside capture (Watermark / Branding)
@@ -505,11 +539,20 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: yInterval,
-          getDrawingHorizontalLine: (val) => const FlLine(
-            color: Color(0xFFE2E8F0),
-            strokeWidth: 1,
-            dashArray: [4, 4],
-          ),
+          getDrawingHorizontalLine: (val) {
+            final isZero = val.abs() < (yInterval * 0.01);
+            if (isZero && series.minValue < 0) {
+              return const FlLine(
+                color: Color(0xFF64748B),
+                strokeWidth: 1.5,
+              );
+            }
+            return const FlLine(
+              color: Color(0xFFE2E8F0),
+              strokeWidth: 1,
+              dashArray: [4, 4],
+            );
+          },
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -527,11 +570,17 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
                   return const SizedBox.shrink();
                 }
 
+                final isZero = val.abs() < (yInterval * 0.01);
                 return Text(
                   ChartDataParser.formatIndonesianNumber(val, maxDecimals: yDecimals),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
-                    color: const Color(0xFF94A3B8),
+                    fontWeight: (isZero && series.minValue < 0)
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    color: (isZero && series.minValue < 0)
+                        ? const Color(0xFF334155)
+                        : const Color(0xFF94A3B8),
                   ),
                 );
               },
@@ -539,8 +588,8 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
+              showTitles: !series.shouldHideBottomTitles,
+              reservedSize: series.shouldHideBottomTitles ? 0 : 28,
               interval: xInterval,
               getTitlesWidget: (val, meta) {
                 final idx = val.round();
@@ -632,7 +681,7 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
   }
 
   Widget _buildBarChart(ChartSeries series) {
-    final double rawMinY = series.minValue < 0 ? series.minValue * 1.18 : 0.0;
+    final double rawMinY = series.minValue < 0 ? series.minValue * 1.28 : 0.0;
     double rawMaxY = series.maxValue > 0 ? series.maxValue * 1.18 : 10.0;
     if (rawMinY >= rawMaxY) {
       rawMaxY = rawMinY + 10.0;
@@ -673,10 +722,15 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
             ? 7.0
             : (count > 8)
                 ? 13.0
-                : 22.0;
+                : (count <= 4)
+                    ? 30.0
+                    : 22.0;
 
     for (int i = 0; i < series.points.length; i++) {
       final p = series.points[i];
+      final bool isNegative = p.value < 0;
+      final Color rodBaseColor = isNegative ? const Color(0xFFEF4444) : series.color;
+
       groups.add(
         BarChartGroupData(
           x: i,
@@ -684,15 +738,22 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
             BarChartRodData(
               toY: p.value,
               gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  series.color,
-                  series.color.withValues(alpha: 0.75),
-                ],
+                begin: isNegative ? Alignment.topCenter : Alignment.bottomCenter,
+                end: isNegative ? Alignment.bottomCenter : Alignment.topCenter,
+                colors: isNegative
+                    ? [
+                        rodBaseColor.withValues(alpha: 0.75),
+                        const Color(0xFFDC2626),
+                      ]
+                    : [
+                        series.color,
+                        series.color.withValues(alpha: 0.75),
+                      ],
               ),
               width: barWidth,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(barWidth > 6 ? 6 : 2)),
+              borderRadius: isNegative
+                  ? BorderRadius.vertical(bottom: Radius.circular(barWidth > 6 ? 6 : 2))
+                  : BorderRadius.vertical(top: Radius.circular(barWidth > 6 ? 6 : 2)),
             ),
           ],
         ),
@@ -708,11 +769,20 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: yInterval,
-          getDrawingHorizontalLine: (val) => const FlLine(
-            color: Color(0xFFE2E8F0),
-            strokeWidth: 1,
-            dashArray: [4, 4],
-          ),
+          getDrawingHorizontalLine: (val) {
+            final isZero = val.abs() < (yInterval * 0.01);
+            if (isZero && series.minValue < 0) {
+              return const FlLine(
+                color: Color(0xFF64748B), // Clear solid baseline for zero
+                strokeWidth: 1.5,
+              );
+            }
+            return const FlLine(
+              color: Color(0xFFE2E8F0),
+              strokeWidth: 1,
+              dashArray: [4, 4],
+            );
+          },
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -730,11 +800,17 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
                   return const SizedBox.shrink();
                 }
 
+                final isZero = val.abs() < (yInterval * 0.01);
                 return Text(
                   ChartDataParser.formatIndonesianNumber(val, maxDecimals: yDecimals),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
-                    color: const Color(0xFF94A3B8),
+                    fontWeight: (isZero && series.minValue < 0)
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    color: (isZero && series.minValue < 0)
+                        ? const Color(0xFF334155)
+                        : const Color(0xFF94A3B8),
                   ),
                 );
               },
@@ -742,8 +818,8 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
+              showTitles: !series.shouldHideBottomTitles,
+              reservedSize: series.shouldHideBottomTitles ? 0 : 32,
               interval: xInterval,
               getTitlesWidget: (val, meta) {
                 final idx = val.round();
@@ -774,8 +850,13 @@ class _InteractiveChartViewState extends State<InteractiveChartView> {
         ),
         borderData: FlBorderData(show: false),
         barTouchData: BarTouchData(
+          enabled: true,
           touchTooltipData: BarTouchTooltipData(
             getTooltipColor: (_) => const Color(0xFF0F172A),
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            tooltipMargin: 8,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               final label = series.points[groupIndex].label;
               final val = ChartDataParser.formatIndonesianNumber(rod.toY);

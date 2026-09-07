@@ -238,5 +238,141 @@ void main() {
       final seriesList = ChartDataParser.parseStaticHtml(narrativeHtml);
       expect(seriesList.isEmpty, isTrue);
     });
+
+    test('isAggregateRowLabel detects all variants of total and summary rows', () {
+      expect(ChartDataParser.isAggregateRowLabel('Jumlah'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Total'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Jumlah/<i>Total</i>'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Jumlah / Total'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Jumlah (Total)'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Total / Jumlah'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Jumlah Total'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Grand Total'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Rata-rata'), isTrue);
+      expect(ChartDataParser.isAggregateRowLabel('Average'), isTrue);
+
+      // Non-aggregates
+      expect(ChartDataParser.isAggregateRowLabel('0-4'), isFalse);
+      expect(ChartDataParser.isAggregateRowLabel('20-24'), isFalse);
+      expect(ChartDataParser.isAggregateRowLabel('Kecamatan Sayung'), isFalse);
+      expect(ChartDataParser.isAggregateRowLabel('Jumlah Penduduk Laki-Laki'), isFalse);
+    });
+
+    test('parseSimdasi filters out Jumlah/<i>Total</i> from points and saves totalValue', () {
+      final samplePopulationTable = {
+        'kolom': {
+          '1': {
+            'nama_variabel': 'Penduduk (Laki-Laki)',
+            'satuan': 'ribu',
+          }
+        },
+        'data': [
+          {
+            'label': '0-4',
+            'variables': {'1': {'value': '45.2'}}
+          },
+          {
+            'label': '5-9',
+            'variables': {'1': {'value': '46.1'}}
+          },
+          {
+            'label': '10-14',
+            'variables': {'1': {'value': '47.8'}}
+          },
+          {
+            'label': 'Jumlah/<i>Total</i>',
+            'variables': {'1': {'value': '643.6'}}
+          }
+        ]
+      };
+
+      final seriesList = ChartDataParser.parseSimdasi(samplePopulationTable);
+      expect(seriesList.length, 1);
+      final series = seriesList.first;
+
+      // Ensure points ONLY contain the 3 age groups, not the 643.6k total!
+      expect(series.points.length, 3);
+      expect(series.points.map((p) => p.label).toList(), ['0-4', '5-9', '10-14']);
+      expect(series.points.map((p) => p.value).toList(), [45.2, 46.1, 47.8]);
+
+      // Ensure totalValue is captured for the KPI banner
+      expect(series.totalValue, 643.6);
+      expect(series.totalLabel, 'Jumlah/Total');
+      expect(series.maxValue, 47.8); // Not 643.6! Scale is preserved!
+    });
+
+    test('sanitizeSeries removes subdistrict aggregate row (e.g. Kecamatan Sayung) based on sum matching', () {
+      // 3 villages totaling 12000, plus a 4th row "KECAMATAN SAYUNG" = 12000
+      final rawSeries = ChartSeries(
+        name: 'Laki-laki',
+        unit: 'Jiwa',
+        points: const [
+          ChartDataPoint(label: 'Bulusari', value: 3000, formattedValue: '3.000'),
+          ChartDataPoint(label: 'Karangasem', value: 4000, formattedValue: '4.000'),
+          ChartDataPoint(label: 'Loireng', value: 5000, formattedValue: '5.000'),
+          ChartDataPoint(label: 'KECAMATAN SAYUNG', value: 12000, formattedValue: '12.000'),
+        ],
+        color: const Color(0xFFE8611A),
+      );
+
+      final sanitized = ChartDataParser.sanitizeSeries(rawSeries);
+      expect(sanitized.points.length, 3);
+      expect(sanitized.points.map((p) => p.label).toList(), ['Bulusari', 'Karangasem', 'Loireng']);
+      expect(sanitized.totalValue, 12000);
+      expect(sanitized.totalLabel, 'KECAMATAN SAYUNG');
+      expect(sanitized.maxValue, 5000);
+    });
+
+    test('ChartSeries.shouldHideBottomTitles accurately detects dense categorical data vs temporal', () {
+      // Temporal series with 4 years -> should NOT hide
+      final temporalSeries = ChartSeries(
+        name: 'Temporal',
+        unit: '',
+        points: const [
+          ChartDataPoint(label: '2023', value: 10, formattedValue: '10'),
+          ChartDataPoint(label: '2024', value: 12, formattedValue: '12'),
+          ChartDataPoint(label: '2025', value: 14, formattedValue: '14'),
+          ChartDataPoint(label: '2026', value: 16, formattedValue: '16'),
+        ],
+        color: Colors.blue,
+      );
+      expect(temporalSeries.shouldHideBottomTitles, isFalse);
+
+      // Categorical with 19 villages -> should hide
+      final denseVillages = ChartSeries(
+        name: 'Villages',
+        unit: 'Jiwa',
+        points: List.generate(
+          19,
+          (i) => ChartDataPoint(label: 'Desa $i', value: 100.0 * i, formattedValue: '${100 * i}'),
+        ),
+        color: Colors.orange,
+      );
+      expect(denseVillages.shouldHideBottomTitles, isTrue);
+
+      // Categorical with long labels (e.g. "Karangasem" is 10 chars > 7 chars) -> should hide
+      final longLabelVillages = ChartSeries(
+        name: 'Villages',
+        unit: 'Jiwa',
+        points: const [
+          ChartDataPoint(label: 'Karangasem', value: 100, formattedValue: '100'),
+          ChartDataPoint(label: 'Purwosari', value: 120, formattedValue: '120'),
+        ],
+        color: Colors.green,
+      );
+      expect(longLabelVillages.shouldHideBottomTitles, isTrue);
+
+      // Categorical with few short labels (e.g. "Kota", "Desa") -> should NOT hide
+      final shortLabel = ChartSeries(
+        name: 'Area',
+        unit: '',
+        points: const [
+          ChartDataPoint(label: 'Kota', value: 50, formattedValue: '50'),
+          ChartDataPoint(label: 'Desa', value: 50, formattedValue: '50'),
+        ],
+        color: Colors.teal,
+      );
+      expect(shortLabel.shouldHideBottomTitles, isFalse);
+    });
   });
 }

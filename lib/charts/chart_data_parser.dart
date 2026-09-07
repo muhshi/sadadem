@@ -20,12 +20,16 @@ class ChartSeries {
   final String unit;
   final List<ChartDataPoint> points;
   final Color color;
+  final double? totalValue;
+  final String? totalLabel;
 
   const ChartSeries({
     required this.name,
     required this.unit,
     required this.points,
     required this.color,
+    this.totalValue,
+    this.totalLabel,
   });
 
   bool get isEmpty => points.isEmpty;
@@ -45,6 +49,28 @@ class ChartSeries {
     if (points.isEmpty) return 0;
     final sum = points.map((p) => p.value).reduce((a, b) => a + b);
     return sum / points.length;
+  }
+
+  double get pointsSum {
+    if (points.isEmpty) return 0;
+    return points.map((p) => p.value).reduce((a, b) => a + b);
+  }
+
+  bool get isTemporal => points.any((p) =>
+      RegExp(r'^(?:19|20)\d{2}\b').hasMatch(p.label) ||
+      RegExp(r'^(?:Jan(?:uari)?|Feb(?:ruari)?|Mar(?:et)?|Apr(?:il)?|Mei|Jun(?:i)?|Jul(?:i)?|Agu(?:stus)?|Sep(?:tember)?|Okt(?:ober)?|Nov(?:ember)?|Des(?:ember)?)\b',
+              caseSensitive: false)
+          .hasMatch(p.label));
+
+  /// Determines if bottom horizontal labels should be hidden to avoid dense overlapping text.
+  /// (e.g. 19 villages with long names). Users see names via tooltip by tapping/dragging.
+  bool get shouldHideBottomTitles {
+    if (isTemporal) return false;
+    if (points.length > 4) return true;
+    final maxLen = points.isEmpty
+        ? 0
+        : points.map((p) => p.label.length).reduce((a, b) => a > b ? a : b);
+    return maxLen > 7;
   }
 }
 
@@ -186,6 +212,106 @@ class ChartDataParser {
     return monthName.length > 3 ? monthName.substring(0, 3) : monthName;
   }
 
+  /// Check if a row label represents an aggregate/summary row (e.g. Jumlah, Total, Rata-rata)
+  /// that should not be plotted as an individual categorical data point.
+  static bool isAggregateRowLabel(String rawLabel) {
+    final clean = rawLabel.replaceAll(RegExp(r'<[^>]*>'), '').trim().toLowerCase();
+    if (clean.isEmpty) return false;
+
+    if (clean == 'jumlah' ||
+        clean == 'total' ||
+        clean == 'jumlah total' ||
+        clean == 'grand total' ||
+        clean == 'rata-rata' ||
+        clean == 'rerata' ||
+        clean == 'average' ||
+        clean == 'mean') {
+      return true;
+    }
+
+    final pattern = RegExp(
+      r'^(?:jumlah|total)(?:\s*(?:[\/|–—\-]|\()\s*(?:total|jumlah)[\)]?)?$',
+      caseSensitive: false,
+    );
+    if (pattern.hasMatch(clean)) return true;
+
+    if ((clean.startsWith('jumlah') || clean.startsWith('total')) &&
+        (clean.contains('/total') ||
+            clean.contains('/ total') ||
+            clean.contains('/jumlah') ||
+            clean.contains('/ jumlah') ||
+            clean.contains('(total)') ||
+            clean.contains('(jumlah)'))) {
+      return true;
+    }
+
+    if (clean.contains('kecamatan') || clean.contains('kabupaten')) {
+      if (clean.contains('total') || clean.contains('jumlah') || clean.contains('seluruh')) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Post-process and sanitize a series to ensure aggregate rows (e.g. Kecamatan total,
+  /// Kabupaten total, or summary sums) are not plotted alongside individual sub-entities.
+  static ChartSeries sanitizeSeries(ChartSeries series) {
+    if (series.points.length < 3) return series;
+
+    final points = List<ChartDataPoint>.from(series.points);
+    double? totalVal = series.totalValue;
+    String? totalLbl = series.totalLabel;
+
+    // 1. Check if the last point is an aggregate (label check OR mathematical sum match)
+    final lastPoint = points.last;
+    final otherSum = points.sublist(0, points.length - 1).fold<double>(0, (s, p) => s + p.value);
+    final lastLower = lastPoint.label.toLowerCase().trim();
+
+    final bool isLastExplicitAggregate = isAggregateRowLabel(lastPoint.label);
+    final bool isLastRegionAggregate = lastLower.startsWith('kecamatan') ||
+        lastLower.startsWith('kec.') ||
+        lastLower.startsWith('kabupaten') ||
+        lastLower.startsWith('kab.') ||
+        lastLower.contains('demak');
+
+    final bool isLastSumMatch = otherSum > 0 &&
+        ((lastPoint.value - otherSum).abs() / otherSum < 0.04 ||
+            (lastPoint.value >= otherSum * 0.90 && lastPoint.value <= otherSum * 1.10));
+
+    if (isLastExplicitAggregate ||
+        (isLastRegionAggregate && lastPoint.value > otherSum * 0.4) ||
+        isLastSumMatch) {
+      totalVal ??= lastPoint.value;
+      totalLbl ??= lastPoint.label;
+      points.removeLast();
+    }
+
+    // 2. Check if the first point is an aggregate
+    if (points.length >= 3) {
+      final firstPoint = points.first;
+      final restSum = points.sublist(1).fold<double>(0, (s, p) => s + p.value);
+      final bool isFirstExplicitAggregate = isAggregateRowLabel(firstPoint.label);
+      final bool isFirstSumMatch = restSum > 0 &&
+          ((firstPoint.value - restSum).abs() / restSum < 0.04);
+
+      if (isFirstExplicitAggregate || isFirstSumMatch) {
+        totalVal ??= firstPoint.value;
+        totalLbl ??= firstPoint.label;
+        points.removeAt(0);
+      }
+    }
+
+    return ChartSeries(
+      name: series.name,
+      unit: series.unit,
+      points: points,
+      color: series.color,
+      totalValue: totalVal,
+      totalLabel: totalLbl,
+    );
+  }
+
   /// Parse SIMDASI Table Data (Tipe 3)
   static List<ChartSeries> parseSimdasi(Map<String, dynamic> tableObj) {
     final rawKolom = tableObj['kolom'];
@@ -222,10 +348,15 @@ class ChartDataParser {
       }
 
       final List<ChartDataPoint> points = [];
+      double? capturedTotalValue;
+      String? capturedTotalLabel;
 
       for (var row in rowsList) {
         if (row is! Map) continue;
-        final label = row['label']?.toString() ?? '';
+        final rawLabel = row['label']?.toString() ?? '';
+        final cleanLabel = rawLabel.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+        if (cleanLabel.isEmpty) continue;
+
         final variables = (row['variables'] as Map?)?.cast<String, dynamic>() ?? {};
         final varObj = variables[colKey];
 
@@ -237,9 +368,16 @@ class ChartDataParser {
         }
 
         if (numVal != null) {
+          // If this row is an aggregate summary (Jumlah/Total), do NOT add it as a point to avoid scale distortion
+          if (isAggregateRowLabel(cleanLabel) && rowsList.length > 1) {
+            capturedTotalValue = numVal;
+            capturedTotalLabel = cleanLabel;
+            continue;
+          }
+
           points.add(
             ChartDataPoint(
-              label: label,
+              label: cleanLabel,
               value: numVal,
               formattedValue: formatIndonesianNumber(numVal),
             ),
@@ -248,14 +386,15 @@ class ChartDataParser {
       }
 
       if (points.isNotEmpty) {
-        seriesList.add(
-          ChartSeries(
-            name: colName,
-            unit: unitText,
-            points: points,
-            color: seriesColors[colorIdx % seriesColors.length],
-          ),
+        final rawSeries = ChartSeries(
+          name: colName,
+          unit: unitText,
+          points: points,
+          color: seriesColors[colorIdx % seriesColors.length],
+          totalValue: capturedTotalValue,
+          totalLabel: capturedTotalLabel,
         );
+        seriesList.add(sanitizeSeries(rawSeries));
         colorIdx++;
       }
     }
@@ -487,22 +626,31 @@ class ChartDataParser {
     for (int col = 1; col < headerRow.length; col++) {
       final colName = headerRow[col].isNotEmpty ? headerRow[col] : 'Kolom $col';
       final points = <ChartDataPoint>[];
+      double? capturedTotalValue;
+      String? capturedTotalLabel;
 
       for (var dRow in dataRows) {
         if (dRow.length <= col) continue;
-        final label = dRow[0];
-        if (label.isEmpty) continue;
-        if (label.toLowerCase().startsWith('catatan') ||
-            label.toLowerCase().startsWith('sumber') ||
-            label.toLowerCase().startsWith('keterangan')) {
+        final rawLabel = dRow[0];
+        final cleanLabel = rawLabel.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+        if (cleanLabel.isEmpty) continue;
+        if (cleanLabel.toLowerCase().startsWith('catatan') ||
+            cleanLabel.toLowerCase().startsWith('sumber') ||
+            cleanLabel.toLowerCase().startsWith('keterangan')) {
           continue;
         }
         final rawVal = dRow[col];
         final numVal = parseNumeric(rawVal);
         if (numVal != null) {
+          if (isAggregateRowLabel(cleanLabel) && dataRows.length > 2) {
+            capturedTotalValue = numVal;
+            capturedTotalLabel = cleanLabel;
+            continue; // Do NOT plot aggregate total in chart!
+          }
+
           points.add(
             ChartDataPoint(
-              label: label,
+              label: cleanLabel,
               value: numVal,
               formattedValue: formatIndonesianNumber(numVal),
             ),
@@ -511,14 +659,15 @@ class ChartDataParser {
       }
 
       if (points.isNotEmpty) {
-        seriesList.add(
-          ChartSeries(
-            name: colName,
-            unit: '',
-            points: points,
-            color: seriesColors[(col - 1) % seriesColors.length],
-          ),
+        final rawSeries = ChartSeries(
+          name: colName,
+          unit: '',
+          points: points,
+          color: seriesColors[(col - 1) % seriesColors.length],
+          totalValue: capturedTotalValue,
+          totalLabel: capturedTotalLabel,
         );
+        seriesList.add(sanitizeSeries(rawSeries));
       }
     }
 

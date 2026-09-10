@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:Dalem/providers/publication_provider.dart';
 import 'package:Dalem/providers/news_provider.dart';
 import 'package:Dalem/providers/bookmark_provider.dart';
+import 'package:Dalem/providers/theme_provider.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -37,6 +38,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PublicationProvider()),
         ChangeNotifierProvider(create: (_) => NewsProvider()),
         ChangeNotifierProvider(create: (_) => BookmarkProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyApp(),
     ),
@@ -48,21 +50,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
-      Theme.of(context).textTheme,
-    ).copyWith(
-      headlineLarge: AppTextStyles.headlineLarge,
-      headlineMedium: AppTextStyles.headlineMedium,
-      titleLarge: AppTextStyles.titleLarge,
-      titleMedium: AppTextStyles.titleMedium,
-      bodyLarge: AppTextStyles.bodyLarge,
-      bodyMedium: AppTextStyles.bodyMedium,
-      labelLarge: AppTextStyles.labelLarge,
-    );
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        final textTheme = GoogleFonts.plusJakartaSansTextTheme(
+          Theme.of(context).textTheme,
+        ).copyWith(
+          headlineLarge: AppTextStyles.headlineLarge,
+          headlineMedium: AppTextStyles.headlineMedium,
+          titleLarge: AppTextStyles.titleLarge,
+          titleMedium: AppTextStyles.titleMedium,
+          bodyLarge: AppTextStyles.bodyLarge,
+          bodyMedium: AppTextStyles.bodyMedium,
+          labelLarge: AppTextStyles.labelLarge,
+        );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Dalem BPS Demak',
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Dalem BPS Demak',
       theme: ThemeData(
         useMaterial3: true,
         primaryColor: AppColors.primaryNavy,
@@ -140,6 +144,8 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const MainScreen(),
+        );
+      },
     );
   }
 }

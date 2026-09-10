@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:Dalem/components/app_colors.dart';
 import 'package:Dalem/components/bar.dart';
 import 'package:Dalem/components/bps_theme.dart';
+import 'package:Dalem/providers/theme_provider.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -38,13 +40,15 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = BpsTheme.current();
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final theme = themeProvider.currentTheme;
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundScaffold,
-      appBar: const AppBar2(
-        title: 'Tentang Aplikasi',
-      ),
+        return Scaffold(
+          backgroundColor: AppColors.backgroundScaffold,
+          appBar: const AppBar2(
+            title: 'Tentang Aplikasi',
+          ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -161,7 +165,8 @@ class AboutPage extends StatelessWidget {
                                 size: 14, color: Colors.white),
                             const SizedBox(width: 5),
                             Text(
-                              theme.activityName,
+                              // Tampilkan nama kegiatan (bisa diatur dengan showYear: true atau ubah langsung di _getThemeDisplayName)
+                              _getThemeDisplayName(theme.activity),
                               style: GoogleFonts.plusJakartaSans(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -179,7 +184,12 @@ class AboutPage extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // 2. Profil & Layanan BPS Demak
+            // 2. Tema Tampilan Aplikasi
+            _buildThemeSection(context, themeProvider),
+
+            const SizedBox(height: 14),
+
+            // 3. Profil & Layanan BPS Demak
             _buildSectionCard(
               title: 'Profil & Layanan BPS Demak',
               icon: Icons.account_balance_rounded,
@@ -314,6 +324,8 @@ class AboutPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 
@@ -526,5 +538,308 @@ class AboutPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildThemeSection(
+    BuildContext context,
+    ThemeProvider themeProvider,
+  ) {
+    final isAuto = themeProvider.isAuto;
+    final autoTheme = themeProvider.autoTheme;
+    final manualActivity = themeProvider.manualActivity;
+
+    const themeOptions = [
+      BpsActivity.sensusEkonomi2026,
+      BpsActivity.sensusPertanian2023,
+      BpsActivity.sensusPenduduk2020,
+      BpsActivity.defaultBps,
+    ];
+
+    return _buildSectionCard(
+      title: 'Tema Tampilan Aplikasi',
+      icon: Icons.palette_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sesuaikan tema warna aplikasi secara manual atau biarkan otomatis mengikuti agenda rilis kegiatan sensus dan survei resmi BPS.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.5,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 1. Opsi Otomatis (Rekomendasi)
+          InkWell(
+            onTap: () {
+              if (!isAuto) {
+                themeProvider.resetToAuto();
+              }
+            },
+            borderRadius: BorderRadius.circular(14),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: isAuto
+                    ? autoTheme.primary.withValues(alpha: 0.08)
+                    : AppColors.surfaceCard,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isAuto ? autoTheme.primary : AppColors.borderDefault,
+                  width: isAuto ? 1.8 : 1,
+                ),
+                boxShadow: isAuto
+                    ? [
+                        BoxShadow(
+                          color: autoTheme.primary.withValues(alpha: 0.12),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isAuto
+                          ? autoTheme.primary
+                          : AppColors.textSecondary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 18,
+                      color: isAuto ? Colors.white : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Otomatis',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: isAuto
+                                    ? autoTheme.primary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Rekomendasi',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF059669),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Sesuai agenda BPS: ${_getThemeDisplayName(autoTheme.activity)}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    isAuto
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded,
+                    color: isAuto ? autoTheme.primary : AppColors.textMuted,
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Subtitle Manual
+          Row(
+            children: [
+              Text(
+                'Atau Pilih Tema Khusus:',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // 2x2 Grid Theme Cards
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: themeOptions.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.45,
+            ),
+            itemBuilder: (context, index) {
+              final activity = themeOptions[index];
+              final actTheme = ActivityThemes.getTheme(activity);
+              final isSelected = !isAuto && manualActivity == activity;
+
+              return InkWell(
+                onTap: () => themeProvider.setManualTheme(activity),
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? actTheme.primary.withValues(alpha: 0.08)
+                        : AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected
+                          ? actTheme.primary
+                          : AppColors.borderDefault,
+                      width: isSelected ? 2 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: actTheme.primary.withValues(alpha: 0.15),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  actTheme.primary,
+                                  actTheme.secondary,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      actTheme.primary.withValues(alpha: 0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          if (isSelected)
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 18,
+                              color: actTheme.primary,
+                            )
+                          else
+                            Icon(
+                              Icons.radio_button_off_rounded,
+                              size: 16,
+                              color:
+                                  AppColors.textMuted.withValues(alpha: 0.6),
+                            ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: actTheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _getThemeShortBadge(activity),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: actTheme.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _getThemeDisplayName(activity),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: isSelected
+                                  ? actTheme.primary
+                                  : AppColors.textPrimary,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Nama label kegiatan/tema yang ditampilkan di header dan kartu tema.
+  /// Berpusat di ActivityTheme.displayName() agar sinkron dengan AppBar Home.
+  String _getThemeDisplayName(BpsActivity activity, {bool showYear = false}) {
+    return ActivityThemes.getTheme(activity).displayName(showYear: showYear);
+  }
+
+  /// Badge singkatan tema pada kartu (berpusat di ActivityTheme.displayBadge).
+  String _getThemeShortBadge(BpsActivity activity) {
+    return ActivityThemes.getTheme(activity).displayBadge();
   }
 }

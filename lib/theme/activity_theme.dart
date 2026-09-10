@@ -47,4 +47,38 @@ class ActivityTheme {
         end: Alignment.bottomCenter,
         colors: [primaryDark, primary, primaryLight],
       );
+
+  /// Nama tampilan kegiatan yang tampil di UI (Appbar Home & About Page).
+  /// - Default: tanpa tahun ('Sensus Ekonomi', 'Sensus Pertanian', dsb.)
+  /// - Jika ingin menampilkan tahun secara otomatis: panggil dengan [showYear: true]
+  /// - Jika ingin hardcode tahun manual: langsung ubah teks return pada case di bawah
+  String displayName({bool showYear = false}) {
+    if (showYear) return activityName;
+    switch (activity) {
+      case BpsActivity.sensusEkonomi2026:
+        return 'Sensus Ekonomi'; // Ganti ke 'Sensus Ekonomi 2026' jika ingin hardcode tahun
+      case BpsActivity.sensusPertanian2023:
+        return 'Sensus Pertanian'; // Ganti ke 'Sensus Pertanian 2023' jika ingin hardcode tahun
+      case BpsActivity.sensusPenduduk2020:
+        return 'Sensus Penduduk'; // Ganti ke 'Sensus Penduduk 2020' jika ingin hardcode tahun
+      case BpsActivity.defaultBps:
+        return 'BPS Kabupaten Demak';
+    }
+  }
+
+  /// Badge singkatan kegiatan (misal: 'SE', 'ST', 'SP', 'BPS').
+  /// Jika ingin hardcode tahun pada badge, langsung ubah teks di bawah (misal: 'SE2026')
+  String displayBadge({bool showYear = false}) {
+    if (showYear) return shortBadge;
+    switch (activity) {
+      case BpsActivity.sensusEkonomi2026:
+        return 'SE'; // Ganti ke 'SE2026' jika ingin hardcode tahun
+      case BpsActivity.sensusPertanian2023:
+        return 'ST'; // Ganti ke 'ST2023' jika ingin hardcode tahun
+      case BpsActivity.sensusPenduduk2020:
+        return 'SP'; // Ganti ke 'SP2020' jika ingin hardcode tahun
+      case BpsActivity.defaultBps:
+        return 'BPS';
+    }
+  }
 }

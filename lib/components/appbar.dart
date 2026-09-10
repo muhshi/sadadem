@@ -89,7 +89,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  BpsTheme.current().activityName,
+                                  BpsTheme.current().displayName(),
                                   style: GoogleFonts.plusJakartaSans(
                                     color: Colors.white,
                                     fontSize: 11,

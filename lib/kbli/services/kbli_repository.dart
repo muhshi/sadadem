@@ -111,6 +111,64 @@ class KbliRepository {
     return await KbliMockData.getHierarchy(parent: parent);
   }
 
+  /// Get all 5-digit KBLI items under a parent code (e.g. division '01' or group '011').
+  /// Uses online search, offline SQLite prefix query, or mock dataset.
+  Future<List<KbliItem>> getKbliLeavesByParent(
+    String parentCode, {
+    String? query,
+    int limit = 100,
+  }) async {
+    final cleanParent = parentCode.trim();
+    if (cleanParent.isEmpty) return [];
+
+    final isOnline = await isNetworkConnected();
+
+    // 1. Try Online REST Search first
+    if (isOnline) {
+      try {
+        final searchTerm = (query != null && query.trim().isNotEmpty)
+            ? '$cleanParent ${query.trim()}'
+            : cleanParent;
+
+        final onlineResults = await _apiService.search(
+          searchTerm,
+          type: 'KBLI',
+          limit: limit,
+        );
+
+        final matching = onlineResults.where((item) {
+          final isChild = item.kode.startsWith(cleanParent) && item.kode.length >= 5;
+          if (!isChild) return false;
+          if (query != null && query.trim().isNotEmpty) {
+            final q = query.toLowerCase().trim();
+            return item.kode.toLowerCase().contains(q) ||
+                item.judul.toLowerCase().contains(q) ||
+                item.deskripsi.toLowerCase().contains(q);
+          }
+          return true;
+        }).toList();
+
+        if (matching.isNotEmpty) return matching;
+      } catch (e) {
+        debugPrint('Online leaf search failed, falling back to local/mock: $e');
+      }
+    }
+
+    // 2. Try Local SQLite prefix query
+    final isDbReady = await KbliLocalDbService.isDatabaseReady();
+    if (isDbReady) {
+      final localResults = await KbliLocalDbService.getItemsByPrefix(
+        cleanParent,
+        query: query,
+        limit: limit,
+      );
+      if (localResults.isNotEmpty) return localResults;
+    }
+
+    // 3. Fallback to Mock Data Provider
+    return KbliMockData.getByPrefix(cleanParent, query: query);
+  }
+
   /// Check sync bundle info from server with Mock fallback.
   Future<Map<String, dynamic>?> checkSyncInfo() async {
     try {
@@ -153,7 +211,7 @@ class KbliRepository {
       try {
         await _apiService.submitSingle(submission);
         await KbliLocalDbService.saveLocalSubmission(
-          submission.copyWith(status: 'synced', isSynced: true),
+          submission.copyWith(status: 'pending', isSynced: true),
         );
         return true;
       } catch (e) {
@@ -163,7 +221,7 @@ class KbliRepository {
 
     // Save to local history queue
     await KbliLocalDbService.saveLocalSubmission(
-      submission.copyWith(status: isOnline ? 'synced' : 'pending', isSynced: isOnline),
+      submission.copyWith(status: 'pending', isSynced: isOnline),
     );
     return isOnline; // If online network is present, treat as sent in simulation mode
   }
@@ -187,5 +245,34 @@ class KbliRepository {
       debugPrint('Error bulk syncing pending submissions: $e');
       return 0;
     }
+  }
+
+  /// Resolves the official title for a classification code via local SQLite, prepackaged dataset, or online API.
+  Future<String?> getTitleByCode(String type, String kode) async {
+    final cleanKode = kode.trim();
+    if (cleanKode.isEmpty) return null;
+
+    // 1. Check local SQLite DB
+    try {
+      final localTitle = await KbliLocalDbService.getTitleByCode(type, cleanKode);
+      if (localTitle != null && localTitle.isNotEmpty) return localTitle;
+    } catch (_) {}
+
+    // 2. Check Mock / Master prepackaged dataset
+    final mockItem = KbliMockData.findByCode(cleanKode);
+    if (mockItem != null && mockItem.judul.isNotEmpty) return mockItem.judul;
+
+    // 3. Check Online API
+    try {
+      final isOnline = await isNetworkConnected();
+      if (isOnline) {
+        final results = await _apiService.search(cleanKode, limit: 1);
+        final match = results.where((item) => item.kode.trim() == cleanKode).firstOrNull ??
+            results.firstOrNull;
+        if (match != null && match.judul.isNotEmpty) return match.judul;
+      }
+    } catch (_) {}
+
+    return null;
   }
 }

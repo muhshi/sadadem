@@ -279,6 +279,7 @@ class KbliDetailPage extends StatelessWidget {
                       child: KbliSubmissionPage(
                         initialType: isKbli ? 'KBLI' : 'KBJI',
                         initialKode: item.kode,
+                        initialJudul: item.judul,
                       ),
                     ),
                   );

@@ -69,6 +69,7 @@ class KbliLocalDbService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT NOT NULL,
         kode TEXT NOT NULL,
+        judul TEXT,
         content TEXT NOT NULL,
         submitter_name TEXT,
         device_id TEXT,
@@ -77,6 +78,9 @@ class KbliLocalDbService {
         is_synced INTEGER DEFAULT 0
       )
     ''');
+    try {
+      await db.execute("ALTER TABLE local_submissions ADD COLUMN judul TEXT");
+    } catch (_) {}
   }
 
   /// Checks if the master KBLI tables and FTS virtual tables exist.
@@ -197,6 +201,49 @@ class KbliLocalDbService {
     return results;
   }
 
+  /// Retrieve 5-digit KBLI items under a parent prefix (e.g. '01' or '011').
+  static Future<List<KbliItem>> getItemsByPrefix(
+    String prefix, {
+    String? query,
+    int limit = 100,
+  }) async {
+    final cleanPrefix = prefix.trim();
+    if (cleanPrefix.isEmpty) return [];
+
+    final isReady = await isDatabaseReady();
+    if (!isReady) return [];
+
+    final db = await database;
+    final results = <KbliItem>[];
+
+    try {
+      String whereClause = "kode LIKE ? AND LENGTH(kode) >= 5";
+      List<dynamic> whereArgs = ['$cleanPrefix%'];
+
+      if (query != null && query.trim().isNotEmpty) {
+        final cleanQ = '%${query.trim()}%';
+        whereClause += " AND (kode LIKE ? OR judul LIKE ? OR deskripsi LIKE ?)";
+        whereArgs.addAll([cleanQ, cleanQ, cleanQ]);
+      }
+
+      final rows = await db.rawQuery('''
+        SELECT kode, judul, deskripsi, contoh_lapangan, 'KBLI 2025' as type
+        FROM kbli2025
+        WHERE $whereClause
+        ORDER BY kode ASC
+        LIMIT ?
+      ''', [...whereArgs, limit]);
+
+      for (var row in rows) {
+        results.add(KbliItem.fromSqlite(row));
+      }
+    } catch (e) {
+      debugPrint('Error getting items by prefix: $e');
+    }
+
+    return results;
+  }
+
   /// Replace current SQLite DB with newly downloaded bundle.
   static Future<bool> installBundle({
     required String downloadedFilePath,
@@ -276,11 +323,50 @@ class KbliLocalDbService {
   /// Get all local submissions for history viewing.
   static Future<List<KbliSubmission>> getAllLocalSubmissions() async {
     final db = await database;
+
+    // Clean up any old dummy seed records so only real user submissions remain
+    try {
+      await db.delete(
+        'local_submissions',
+        where: "content LIKE '%ciherang%' OR content LIKE '%tambal ban%' OR content LIKE '%pulsa elektrik%'",
+      );
+    } catch (_) {}
+
     final rows = await db.query(
       'local_submissions',
       orderBy: 'id DESC',
     );
     return rows.map((r) => KbliSubmission.fromJson(r)).toList();
+  }
+
+  /// Lookup official classification title by code from local SQLite tables
+  static Future<String?> getTitleByCode(String type, String kode) async {
+    final cleanKode = kode.trim();
+    if (cleanKode.isEmpty) return null;
+
+    try {
+      final db = await database;
+      final isKbji = type.toUpperCase().contains('KBJI');
+      final tableName = isKbji ? 'kbji2014' : 'kbli2025';
+
+      final exists = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='$tableName'",
+      );
+      if (exists.isNotEmpty) {
+        final rows = await db.query(
+          tableName,
+          columns: ['judul'],
+          where: 'kode = ?',
+          whereArgs: [cleanKode],
+          limit: 1,
+        );
+        if (rows.isNotEmpty) {
+          final t = rows.first['judul'] as String?;
+          if (t != null && t.trim().isNotEmpty) return t.trim();
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Mark submissions as synced.
@@ -289,7 +375,7 @@ class KbliLocalDbService {
     final db = await database;
     final idList = ids.join(',');
     await db.rawUpdate(
-      "UPDATE local_submissions SET is_synced = 1, status = 'synced' WHERE id IN ($idList)",
+      "UPDATE local_submissions SET is_synced = 1, status = 'pending' WHERE id IN ($idList)",
     );
   }
 }

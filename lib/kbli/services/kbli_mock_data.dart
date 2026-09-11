@@ -563,4 +563,34 @@ class KbliMockData {
       'download_url': 'http://127.0.0.1:8000/api/v1/sync/bundle',
     };
   }
+
+  /// Helper to lookup an item by exact code from mock dataset
+  static KbliItem? findByCode(String kode) {
+    try {
+      final clean = kode.trim();
+      return _masterDataset.firstWhere(
+        (item) => item.kode.trim() == clean,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Find items matching prefix from mock dataset
+  static List<KbliItem> getByPrefix(String prefix, {String? query}) {
+    final clean = prefix.trim();
+    if (clean.isEmpty) return [];
+
+    final matches = _masterDataset.where((item) {
+      if (!item.kode.startsWith(clean) || item.kode.length < 5) return false;
+      if (query != null && query.trim().isNotEmpty) {
+        final q = query.toLowerCase().trim();
+        final text = '${item.kode} ${item.judul} ${item.deskripsi}'.toLowerCase();
+        return text.contains(q);
+      }
+      return true;
+    }).toList();
+
+    return matches;
+  }
 }
